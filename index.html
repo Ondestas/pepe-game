@@ -33,7 +33,7 @@
         }
         #startScreen { display: flex; }
         #endScreen, #nameScreen { display: none; }
-        #startButton, #submitScore {
+        #startButton, #submitScore, #rankingButton {
             padding: 20px 40px;
             font-size: 24px;
             background-color: #4CAF50;
@@ -43,8 +43,9 @@
             border-radius: 5px;
             transition: background-color 0.3s;
             font-family: 'Press Start 2P', cursive;
+            margin-top: 20px;
         }
-        #startButton:hover, #submitScore:hover {
+        #startButton:hover, #submitScore:hover, #rankingButton:hover {
             background-color: #45a049;
         }
         #nameInput {
@@ -56,11 +57,6 @@
         #ranking, #controls {
             margin-top: 20px;
             text-align: center;
-        }
-        #nextArrow {
-            font-size: 36px;
-            cursor: pointer;
-            margin-top: 20px;
         }
     </style>
 </head>
@@ -81,7 +77,7 @@
     <div id="endScreen">
         <h1>Se tegminó, o la la</h1>
         <p id="scoreText"></p>
-        <div id="nextArrow">↓</div>
+        <button id="rankingButton">Ig al ghanking</button>
     </div>
     <div id="nameScreen">
         <h2>Introduce tu nombre</h2>
@@ -113,7 +109,7 @@
             measurementId: "G-3CFG6X9K0E"
         };
 
-        // Inicializar Firebase con manejo de errores
+        // Inicializar Firebase
         let db;
         try {
             firebase.initializeApp(firebaseConfig);
@@ -121,7 +117,7 @@
             console.log("Firebase inicializado correctamente");
         } catch (error) {
             console.error("Error al inicializar Firebase:", error);
-            db = null; // Seguimos sin Firebase si falla
+            db = null;
         }
 
         // Elementos del DOM
@@ -137,7 +133,7 @@
         const nameInput = document.getElementById('nameInput');
         const scoreText = document.getElementById('scoreText');
         const ranking = document.getElementById('ranking');
-        const nextArrow = document.getElementById('nextArrow');
+        const rankingButton = document.getElementById('rankingButton');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -304,34 +300,35 @@
         }
 
         function saveScore(name, score) {
-            if (db) {
-                const newScore = { name, score, timestamp: Date.now() };
-                db.ref('scores').push(newScore).then(() => {
-                    console.log("Puntuación guardada:", newScore);
-                }).catch(error => {
-                    console.error("Error al guardar puntuación:", error);
-                });
-            } else {
+            if (!db) {
                 console.warn("Firebase no disponible, puntuación no guardada");
+                return;
             }
+            const newScore = { name, score, timestamp: Date.now() };
+            db.ref('scores').push(newScore).then(() => {
+                console.log("Puntuación guardada:", newScore);
+            }).catch(error => {
+                console.error("Error al guardar puntuación:", error);
+            });
         }
 
         function loadAndShowRanking() {
-            if (db) {
-                db.ref('scores').orderByChild('score').limitToLast(5).once('value', (snapshot) => {
-                    const scores = [];
-                    snapshot.forEach(child => {
-                        scores.push(child.val());
-                    });
-                    scores.sort((a, b) => b.score - a.score);
-                    showRanking(scores);
-                }).catch(error => {
-                    console.error("Error al cargar ranking:", error);
-                    ranking.innerHTML = '<h2>Ranking</h2><p>Error al cargar</p>';
-                });
-            } else {
-                ranking.innerHTML = '<h2>Ranking</h2><p>Firebase no disponible</p>';
+            if (!db) {
+                console.warn("Firebase no disponible, no se puede cargar el ranking");
+                ranking.innerHTML = '<h2>Ranking</h2><p>No disponible</p>';
+                return;
             }
+            db.ref('scores').orderByChild('score').limitToLast(5).once('value', (snapshot) => {
+                const scores = [];
+                snapshot.forEach(child => {
+                    scores.push(child.val());
+                });
+                scores.sort((a, b) => b.score - a.score);
+                showRanking(scores);
+            }).catch(error => {
+                console.error("Error al cargar ranking:", error);
+                ranking.innerHTML = '<h2>Ranking</h2><p>Error al cargar</p>';
+            });
         }
 
         function showRanking(scores) {
@@ -443,14 +440,14 @@
             gameLoop();
         }
 
-        // Registro de eventos al inicio
+        // Registro de eventos
         console.log("Registrando eventos...");
         startButton.addEventListener('click', () => {
             console.log("Evento click disparado en startButton");
             startGame();
         });
-        nextArrow.addEventListener('click', () => {
-            console.log("Evento click disparado en nextArrow");
+        rankingButton.addEventListener('click', () => {
+            console.log("Evento click disparado en rankingButton");
             showNameScreen();
         });
         submitScore.addEventListener('click', () => {
@@ -478,7 +475,7 @@
             }
         });
 
-        // Carga de imágenes con espera explícita
+        // Carga de imágenes
         Promise.all([
             new Promise(resolve => { pepeImg.onload = resolve; pepeImg.onerror = () => console.error("Error cargando pepe.png"); }),
             new Promise(resolve => { croissantImg.onload = resolve; croissantImg.onerror = () => console.error("Error cargando croissant.png"); }),
