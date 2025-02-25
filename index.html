@@ -665,7 +665,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Jiras de vida', canvas.width - 10, canvas.height - lifeSize - 15);
             for (let i = 0; i < pedroLives; i++) {
                 ctx.drawImage(pedroAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -678,7 +678,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Tiempo ghestante: ${Math.ceil(pedroTimeLeft)}`;
+            const tiempoText = `Lo que te queda, chaval: ${Math.ceil(pedroTimeLeft)}`;
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
@@ -962,7 +962,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Ayahuascas restantes', canvas.width - 10, canvas.height - lifeSize - 15);
             for (let i = 0; i < hectorLives; i++) {
                 ctx.drawImage(hectorAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -975,7 +975,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Tiempo ghestante: ${Math.ceil(hectorTimeLeft)}`;
+            const tiempoText = `Te queda esto co: ${Math.ceil(hectorTimeLeft)}`;
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
