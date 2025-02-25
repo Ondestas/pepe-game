@@ -1,7 +1,7 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
     <title>PEPEGAME</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
@@ -69,7 +69,7 @@
     <canvas id="gameCanvas"></canvas>
     <div id="startScreen">
         <h1>PEPEGAME</h1>
-        <button id="startButton">Comenzag</button>
+        <button id="startButton">Comenzar</button>
         <div id="controls">
             <p>Controles:</p>
             <p>Flecha Izquierda: Girar izquierda</p>
@@ -80,7 +80,7 @@
         </div>
     </div>
     <div id="endScreen">
-        <h1>Se tegminó, o la la</h1>
+        <h1>Se terminó, ¡o la la!</h1>
         <p id="scoreText"></p>
         <div id="nextArrow">↓</div>
     </div>
@@ -237,229 +237,90 @@
         document.addEventListener('keydown', (e) => { keys[e.code] = true; });
         document.addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-        for (let i = 0; i < maxAsteroids; i++) {
-            asteroids.push(new Asteroid());
-        }
-
-        function createExplosion(x, y) {
-            for (let i = 0; i < 20; i++) {
-                ctx.fillStyle = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                ctx.beginPath();
-                ctx.arc(
-                    x + (Math.random() - 0.5) * 30,
-                    y + (Math.random() - 0.5) * 30,
-                    Math.random() * 3,
-                    0,
-                    Math.PI * 2
-                );
-                ctx.fill();
-            }
-        }
-
-        function drawLives() {
-            const lifeSize = 80;
-            ctx.fillStyle = 'black';
-            ctx.fillRect(canvas.width - 300, canvas.height - lifeSize - 40, 280, 30);
-            ctx.fillStyle = 'yellow';
-            ctx.font = '16px "Press Start 2P"';
-            ctx.textAlign = 'right';
-            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
-
-            for (let i = 0; i < lives; i++) {
-                ctx.drawImage(
-                    croissantImg,
-                    canvas.width - (lifeSize + 10) * (i + 1),
-                    canvas.height - lifeSize - 10,
-                    lifeSize,
-                    lifeSize
-                );
-            }
-        }
-
-        function drawHUD() {
-            ctx.font = '16px "Press Start 2P"';
-            ctx.textAlign = 'left';
-
-            const puntosText = `Puntos: ${score}`;
-            const puntosWidth = ctx.measureText(puntosText).width;
-            ctx.fillStyle = 'black';
-            ctx.fillRect(10, 10, puntosWidth + 20, 30);
-
-            const tiempoText = `Tiempo ghestante: ${Math.ceil(timeLeft)}`;
-            const tiempoWidth = ctx.measureText(tiempoText).width;
-            ctx.fillStyle = 'black';
-            ctx.fillRect(10, 40, tiempoWidth + 20, 30);
-
-            ctx.fillStyle = 'yellow';
-            ctx.fillText(puntosText, 20, 30);
-            ctx.fillText(tiempoText, 20, 60);
-        }
-
-        function saveScore(name, score) {
-            const newScore = { name, score, timestamp: Date.now() };
-            db.ref('scores').push(newScore);
-        }
-
-        function loadAndShowRanking() {
-            db.ref('scores').orderByChild('score').limitToLast(5).once('value', (snapshot) => {
-                const scores = [];
-                snapshot.forEach(child => {
-                    scores.push(child.val());
-                });
-                scores.sort((a, b) => b.score - a.score); // Ordenar de mayor a menor
-                showRanking(scores);
-            });
-        }
-
-        function showRanking(scores) {
-            ranking.innerHTML = '<h2>Ranking</h2>' + scores.map((s, i) => 
-                `<p>${i + 1}. ${s.name}: ${s.score}</p>`).join('');
-        }
-
-        function showGameOver() {
-            gameStarted = false;
-            canvas.style.display = 'none';
-            endScreen.style.display = 'flex';
-            scoreText.textContent = `Has ghoto: ${score}`;
-        }
-
-        function showNameScreen() {
-            endScreen.style.display = 'none';
-            nameScreen.style.display = 'flex';
-            nameInput.value = '';
-            ranking.innerHTML = '';
-            loadAndShowRanking();
-        }
-
-        function gameLoop() {
-            if (!gameStarted) return;
-
-            const currentTime = Date.now();
-            const deltaTime = (currentTime - lastTime) / 1000;
-            lastTime = currentTime;
-
-            timeLeft -= deltaTime;
-            if (timeLeft <= 0) {
-                showGameOver();
-                return;
-            }
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (keys['ArrowLeft']) ship.angle -= 0.1;
-            if (keys['ArrowRight']) ship.angle += 0.1;
-            if (keys['ArrowUp']) ship.speed = 5;
-            if (keys['ArrowDown']) ship.speed = -5;
-            if (!keys['ArrowUp'] && !keys['ArrowDown']) ship.speed = 0;
-            if (keys['Space'] && !keys['spacePressed'] && (currentTime - lastShotTime) >= 500) {
-                bullets.push(new Bullet(ship.x, ship.y, ship.angle));
-                keys['spacePressed'] = true;
-                lastShotTime = currentTime;
-            }
-            if (!keys['Space']) keys['spacePressed'] = false;
-
-            ship.update();
-            ship.draw();
-
-            bullets = bullets.filter(b => 
-                b.x > 0 && b.x < canvas.width && 
-                b.y > 0 && b.y < canvas.height
-            );
-            bullets.forEach(b => {
-                b.update();
-                b.draw();
-            });
-
-            asteroids.forEach((a, aIndex) => {
-                a.update();
-                a.draw();
-
-                bullets.forEach((b, bIndex) => {
-                    if (Math.hypot(a.x - b.x, a.y - b.y) < a.width/2 + b.width/2) {
-                        hitSound.play();
-                        createExplosion(a.x, a.y);
-                        asteroids.splice(aIndex, 1);
-                        bullets.splice(bIndex, 1);
-                        asteroids.push(new Asteroid());
-                        score += 1;
-                    }
-                });
-
-                if (Math.hypot(a.x - ship.x, a.y - ship.y) < a.width/2 + ship.width/2) {
-                    lives -= 1;
-                    hitSound.play();
-                    createExplosion(ship.x, ship.y);
-                    ship.x = canvas.width / 2;
-                    ship.y = canvas.height / 2;
-                    ship.speed = 0;
-                    ship.angle = 0;
-                    asteroids.splice(aIndex, 1);
-                    asteroids.push(new Asteroid());
-                    if (lives <= 0) {
-                        showGameOver();
-                        return;
-                    }
-                }
-            });
-
-            drawLives();
-            drawHUD();
-
-            requestAnimationFrame(gameLoop);
-        }
-
         function startGame() {
             gameStarted = true;
             startScreen.style.display = 'none';
             canvas.style.display = 'block';
-            backgroundMusic.play().catch(error => {
-                console.log("Error al reproducir música:", error);
-            });
-            lastTime = Date.now();
+            backgroundMusic.play();
+            createAsteroids();
             gameLoop();
         }
 
-        nextArrow.addEventListener('click', showNameScreen);
+        function gameLoop() {
+            const now = Date.now();
+            const deltaTime = (now - lastTime) / 1000;
+            lastTime = now;
 
-        submitScore.addEventListener('click', () => {
-            const name = nameInput.value.trim();
-            if (name) {
-                saveScore(name, score);
-                setTimeout(() => {
-                    loadAndShowRanking();
-                    setTimeout(() => {
-                        nameScreen.style.display = 'none';
-                        startScreen.style.display = 'flex';
-                        lives = 3;
-                        score = 0;
-                        timeLeft = 60;
-                        ship.x = canvas.width / 2;
-                        ship.y = canvas.height / 2;
-                        bullets = [];
-                        asteroids = [];
-                        for (let i = 0; i < maxAsteroids; i++) {
-                            asteroids.push(new Asteroid());
-                        }
-                    }, 2000);
-                }, 500);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ship.update();
+            ship.draw();
+
+            bullets.forEach((bullet, index) => {
+                bullet.update();
+                bullet.draw();
+                if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
+                    bullets.splice(index, 1);
+                }
+            });
+
+            asteroids.forEach((asteroid, index) => {
+                asteroid.update();
+                asteroid.draw();
+                if (checkCollision(asteroid, ship)) {
+                    lives--;
+                    asteroids.splice(index, 1);
+                    hitSound.play();
+                }
+            });
+
+            if (lives <= 0) {
+                endGame();
             }
-        });
+
+            score++;
+            updateScore();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function createAsteroids() {
+            for (let i = 0; i < maxAsteroids; i++) {
+                asteroids.push(new Asteroid());
+            }
+        }
+
+        function checkCollision(asteroid, ship) {
+            return (asteroid.x < ship.x + ship.width &&
+                    asteroid.x + asteroid.width > ship.x &&
+                    asteroid.y < ship.y + ship.height &&
+                    asteroid.y + asteroid.height > ship.y);
+        }
+
+        function endGame() {
+            canvas.style.display = 'none';
+            endScreen.style.display = 'flex';
+            scoreText.innerText = `Puntuación: ${score}`;
+        }
+
+        function updateScore() {
+            document.getElementById('ranking').innerHTML = `Puntuación: ${score}`;
+        }
 
         startButton.addEventListener('click', startGame);
 
-        Promise.all([
-            new Promise(resolve => pepeImg.onload = resolve),
-            new Promise(resolve => croissantImg.onload = resolve),
-            new Promise(resolve => ukImg.onload = resolve)
-        ]).then(() => {
-            console.log("Imágenes cargadas, listo para iniciar.");
+        nextArrow.addEventListener('click', () => {
+            nameScreen.style.display = 'flex';
+            endScreen.style.display = 'none';
         });
 
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            ship.x = canvas.width / 2;
-            ship.y = canvas.height / 2;
+        submitScore.addEventListener('click', () => {
+            const name = nameInput.value.trim();
+            if (name !== "") {
+                const playerData = { name: name, score: score };
+                const playersRef = db.ref('players');
+                playersRef.push(playerData);
+                nameScreen.style.display = 'none';
+            }
         });
     </script>
 </body>
