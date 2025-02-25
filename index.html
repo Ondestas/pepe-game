@@ -202,7 +202,7 @@
         };
         pepeAssets.ship.src = 'pepe.png';
         pepeAssets.bullet.src = 'croissant_pepe.png';
-        pepeAssets.asteroid.src = 'uk_pepe.jpg';
+        pepeAssets.asteroid.src = 'uk_pepe.png';
 
         const pedroAssets = {
             ship: new Image(),
@@ -1298,7 +1298,7 @@
         Promise.all([
             new Promise(resolve => { pepeAssets.ship.onload = resolve; pepeAssets.ship.onerror = () => console.error("Error cargando pepe.png"); }),
             new Promise(resolve => { pepeAssets.bullet.onload = resolve; pepeAssets.bullet.onerror = () => console.error("Error cargando croissant_pepe.png"); }),
-            new Promise(resolve => { pepeAssets.asteroid.onload = resolve; pepeAssets.asteroid.onerror = () => console.error("Error cargando uk_pepe.jpg"); }),
+            new Promise(resolve => { pepeAssets.asteroid.onload = resolve; pepeAssets.asteroid.onerror = () => console.error("Error cargando uk_pepe.png"); }),
             new Promise(resolve => { pedroAssets.ship.onload = resolve; pedroAssets.ship.onerror = () => console.error("Error cargando pedro.png"); }),
             new Promise(resolve => { pedroAssets.bullet.onload = resolve; pedroAssets.bullet.onerror = () => console.error("Error cargando croissant_pedro.png"); }),
             new Promise(resolve => { pedroAssets.asteroid.onload = resolve; pedroAssets.asteroid.onerror = () => console.error("Error cargando uk_pedro.png"); }),
