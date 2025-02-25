@@ -87,7 +87,7 @@
             bottom: 10px;
             left: 10px;
             right: 10px;
-            display: none;
+            display: none; /* Oculto por defecto, se activa según dispositivo */
             z-index: 5;
             pointer-events: none;
         }
@@ -149,9 +149,6 @@
             #controls p {
                 font-size: 14px;
             }
-            #touchControls {
-                display: flex;
-            }
         }
     </style>
 </head>
@@ -162,12 +159,7 @@
         <button id="startButton">Comenzag</button>
         <div id="controls">
             <p>Controles:</p>
-            <p>Flecha Izquierda: Girar izquierda</p>
-            <p>Flecha Derecha: Girar derecha</p>
-            <p>Flecha Arriba: Avanzar</p>
-            <p>Flecha Abajo: Retroceder</p>
-            <p>Espacio: Disparar</p>
-            <p>(En móvil usa el joystick y botón de disparo)</p>
+            <!-- Instrucciones se llenan dinámicamente -->
         </div>
     </div>
     <div id="characterScreen">
@@ -271,9 +263,33 @@
         const joystick = document.getElementById('joystick');
         const joystickKnob = document.getElementById('joystickKnob');
         const fireButton = document.getElementById('fireButton');
+        const controlsDiv = document.getElementById('controls');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+
+        // Detectar si es móvil
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // Ajustar controles e instrucciones según dispositivo
+        if (isMobile) {
+            touchControls.style.display = 'flex';
+            controlsDiv.innerHTML = `
+                <p>Controles:</p>
+                <p>Joystick izquierdo: Girar y mover</p>
+                <p>Botón derecho: Disparar</p>
+            `;
+        } else {
+            touchControls.style.display = 'none';
+            controlsDiv.innerHTML = `
+                <p>Controles:</p>
+                <p>Flecha Izquierda: Girar izquierda</p>
+                <p>Flecha Derecha: Girar derecha</p>
+                <p>Flecha Arriba: Avanzar</p>
+                <p>Flecha Abajo: Retroceder</p>
+                <p>Espacio: Disparar</p>
+            `;
+        }
 
         // Variable global para guardar la puntuación final
         let finalScore = 0;
@@ -580,7 +596,7 @@
             document.addEventListener('keyup', pepeKeyUpHandler);
             characterScreen.style.display = 'none';
             canvas.style.display = 'block';
-            touchControls.style.display = 'flex';
+            if (isMobile) touchControls.style.display = 'flex';
             pedroAssets.backgroundMusic.pause();
             hectorAssets.backgroundMusic.pause();
             pepeAssets.backgroundMusic.load();
@@ -847,7 +863,7 @@
             document.addEventListener('keyup', pedroKeyUpHandler);
             characterScreen.style.display = 'none';
             canvas.style.display = 'block';
-            touchControls.style.display = 'flex';
+            if (isMobile) touchControls.style.display = 'flex';
             pepeAssets.backgroundMusic.pause();
             hectorAssets.backgroundMusic.pause();
             pedroAssets.backgroundMusic.load();
@@ -1114,7 +1130,7 @@
             document.addEventListener('keyup', hectorKeyUpHandler);
             characterScreen.style.display = 'none';
             canvas.style.display = 'block';
-            touchControls.style.display = 'flex';
+            if (isMobile) touchControls.style.display = 'flex';
             pepeAssets.backgroundMusic.pause();
             pedroAssets.backgroundMusic.pause();
             hectorAssets.backgroundMusic.load();
@@ -1289,9 +1305,9 @@
 
         // Joystick y botón de disparo
         let joystickActive = false;
-        const joystickCenterX = 20 + 120; // Centro del joystick (left + width/2)
-        const joystickCenterY = canvas.height - 20 - 120; // Centro del joystick (bottom + height/2)
-        const maxDistance = 120; // Radio del joystick
+        const joystickCenterX = 20 + 120;
+        const joystickCenterY = canvas.height - 20 - 120;
+        const maxDistance = 120;
 
         joystick.addEventListener('touchstart', (e) => {
             e.preventDefault();
