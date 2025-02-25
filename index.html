@@ -87,7 +87,7 @@
             bottom: 10px;
             left: 10px;
             right: 10px;
-            display: none; /* Oculto por defecto, se activa según dispositivo */
+            display: none;
             z-index: 5;
             pointer-events: none;
         }
@@ -304,7 +304,7 @@
         };
         pepeAssets.ship.src = 'pepe.png';
         pepeAssets.bullet.src = 'croissant_pepe.png';
-        pepeAssets.asteroid.src = 'uk_pepe.jpg';
+        pepeAssets.asteroid.src = 'uk_pepe.png'; // Cambiado de .jpg a .png
 
         const pedroAssets = {
             ship: new Image(),
@@ -716,7 +716,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Jiras restantes', canvas.width - 10, canvas.height - lifeSize - 15); // Actualizado
             for (let i = 0; i < pedroLives; i++) {
                 ctx.drawImage(pedroAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -729,7 +729,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Tiempo ghestante: ${Math.ceil(pedroTimeLeft)}`;
+            const tiempoText = `Lo que te queda, chaval: ${Math.ceil(pedroTimeLeft)}`; // Actualizado
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
@@ -983,7 +983,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Ayahuascas restantes', canvas.width - 10, canvas.height - lifeSize - 15); // Actualizado
             for (let i = 0; i < hectorLives; i++) {
                 ctx.drawImage(hectorAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -996,7 +996,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Tiempo ghestante: ${Math.ceil(hectorTimeLeft)}`;
+            const tiempoText = `Queda poco, co: ${Math.ceil(hectorTimeLeft)}`; // Actualizado
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
@@ -1399,10 +1399,10 @@
         Promise.all([
             new Promise(resolve => { pepeAssets.ship.onload = resolve; pepeAssets.ship.onerror = () => console.error("Error cargando pepe.png"); }),
             new Promise(resolve => { pepeAssets.bullet.onload = resolve; pepeAssets.bullet.onerror = () => console.error("Error cargando croissant_pepe.png"); }),
-            new Promise(resolve => { pepeAssets.asteroid.onload = resolve; pepeAssets.asteroid.onerror = () => console.error("Error cargando uk_pepe.jpg"); }),
+            new Promise(resolve => { pepeAssets.asteroid.onload = resolve; pepeAssets.asteroid.onerror = () => console.error("Error cargando uk_pepe.png"); }), // Actualizado
             new Promise(resolve => { pedroAssets.ship.onload = resolve; pedroAssets.ship.onerror = () => console.error("Error cargando pedro.png"); }),
             new Promise(resolve => { pedroAssets.bullet.onload = resolve; pedroAssets.bullet.onerror = () => console.error("Error cargando croissant_pedro.png"); }),
-            new Promise(resolve => { pedroAssets.asteroid.onload = resolve; pepeAssets.asteroid.onerror = () => console.error("Error cargando uk_pedro.png"); }),
+            new Promise(resolve => { pedroAssets.asteroid.onload = resolve; pedroAssets.asteroid.onerror = () => console.error("Error cargando uk_pedro.png"); }),
             new Promise(resolve => { hectorAssets.ship.onload = resolve; hectorAssets.ship.onerror = () => console.error("Error cargando hector.png"); }),
             new Promise(resolve => { hectorAssets.bullet.onload = resolve; hectorAssets.bullet.onerror = () => console.error("Error cargando croissant_hector.png"); }),
             new Promise(resolve => { hectorAssets.asteroid.onload = resolve; hectorAssets.asteroid.onerror = () => console.error("Error cargando uk_hector.png"); })
