@@ -2,326 +2,44 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>PEPEGAME</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego tipo Asteroids</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background: linear-gradient(45deg, blue, white, red);
-        }
-        canvas {
-            width: 100vw;
-            height: 100vh;
-            display: none;
-        }
-        #startScreen, #endScreen, #nameScreen {
-            position: absolute;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            font-family: 'Press Start 2P', cursive;
-        }
-        #startScreen { display: flex; }
-        #endScreen, #nameScreen { display: none; }
-        #startButton, #submitScore {
-            padding: 20px 40px;
-            font-size: 24px;
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-            font-family: 'Press Start 2P', cursive;
-        }
-        #startButton:hover, #submitScore:hover {
-            background-color: #45a049;
-        }
-        #nameInput {
-            margin: 20px;
-            padding: 10px;
-            font-size: 20px;
-            font-family: 'Press Start 2P', cursive;
-        }
-        #ranking, #controls {
-            margin-top: 20px;
-            text-align: center;
-        }
-        #nextArrow {
-            font-size: 36px;
-            cursor: pointer;
-            margin-top: 20px;
-        }
+        /* Estilos existentes */
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="startScreen">
-        <h1>PEPEGAME</h1>
-        <button id="startButton">Comenzag</button>
-        <div id="controls">
-            <p>Controles:</p>
-            <p>Flecha Izquierda: Girar izquierda</p>
-            <p>Flecha Derecha: Girar derecha</p>
-            <p>Flecha Arriba: Avanzar</p>
-            <p>Flecha Abajo: Retroceder</p>
-            <p>Espacio: Disparar</p>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="score">Puntuación: <span id="scoreValue">0</span></div>
+        <div id="lives">Vidas: <span id="livesValue">3</span></div>
+        <button id="startButton" onclick="startGame()">Iniciar Juego</button>
+        <div id="gameOver" style="display: none;">
+            <h2>Game Over</h2>
+            <p>Tu puntuación: <span id="finalScore"></span></p>
+            <input type="text" id="playerName" placeholder="Tu nombre">
+            <button id="addToRankingButton" onclick="addToRanking()">Añadir al Ranking</button>
         </div>
     </div>
-    <div id="endScreen">
-        <h1>Se terminó, ¡o la la!</h1>
-        <p id="scoreText"></p>
-        <div id="nextArrow">↓</div>
+    <div id="instructions">
+        <h2>Controles:</h2>
+        <ul>
+            <li>Flecha Izquierda: Girar izquierda</li>
+            <li>Flecha Derecha: Girar derecha</li>
+            <li>Flecha Arriba: Avanzar</li>
+            <li>Flecha Abajo: Retroceder</li>
+            <li>Espacio: Disparar</li>
+        </ul>
     </div>
-    <div id="nameScreen">
-        <h2>Introduce tu nombre</h2>
-        <input type="text" id="nameInput" placeholder="Tu nombre" maxlength="10">
-        <button id="submitScore">Enviar</button>
-        <div id="ranking"></div>
-    </div>
-    <audio id="backgroundMusic" loop>
-        <source src="musica.mp3" type="audio/mp3">
-    </audio>
-    <audio id="hitSound">
-        <source src="tos.mp3" type="audio/mp3">
-    </audio>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-
     <script>
-        // Configuración de Firebase con tus credenciales
-        const firebaseConfig = {
-            apiKey: "AIzaSyBKgK9OwzGD947pTuXSkf4bEJ70HqGL0Ck",
-            authDomain: "pepegame-763c5.firebaseapp.com",
-            databaseURL: "https://pepegame-763c5-default-rtdb.firebaseio.com",
-            projectId: "pepegame-763c5",
-            storageBucket: "pepegame-763c5.firebasestorage.app",
-            messagingSenderId: "1084351604949",
-            appId: "1:1084351604949:web:cd425714b9b2b825295a5c",
-            measurementId: "G-3CFG6X9K0E"
-        };
-
-        // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const backgroundMusic = document.getElementById('backgroundMusic');
-        const hitSound = document.getElementById('hitSound');
-        const startScreen = document.getElementById('startScreen');
-        const endScreen = document.getElementById('endScreen');
-        const nameScreen = document.getElementById('nameScreen');
-        const startButton = document.getElementById('startButton');
-        const submitScore = document.getElementById('submitScore');
-        const nameInput = document.getElementById('nameInput');
-        const scoreText = document.getElementById('scoreText');
-        const ranking = document.getElementById('ranking');
-        const nextArrow = document.getElementById('nextArrow');
-
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const pepeImg = new Image();
-        pepeImg.src = 'pepe.png';
-        const croissantImg = new Image();
-        croissantImg.src = 'croissant.png';
-        const ukImg = new Image();
-        ukImg.src = 'uk.jpg';
-
-        backgroundMusic.loop = true;
-        backgroundMusic.volume = 0.5;
-
-        let gameStarted = false;
-        let lastShotTime = 0;
-
-        class Ship {
-            constructor() {
-                this.x = canvas.width / 2;
-                this.y = canvas.height / 2;
-                this.angle = 0;
-                this.speed = 0;
-                this.width = 80;
-                this.height = 80;
-            }
-
-            draw() {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
-                ctx.drawImage(pepeImg, -this.width/2, -this.height/2, this.width, this.height);
-                ctx.restore();
-            }
-
-            update() {
-                this.x += Math.cos(this.angle) * this.speed;
-                this.y += Math.sin(this.angle) * this.speed;
-                if (this.x < 0) this.x = canvas.width;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.y < 0) this.y = canvas.height;
-                if (this.y > canvas.height) this.y = 0;
-            }
-        }
-
-        class Bullet {
-            constructor(x, y, angle) {
-                this.x = x;
-                this.y = y;
-                this.angle = angle;
-                this.speed = 10;
-                this.width = 60;
-                this.height = 60;
-            }
-
-            draw() {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
-                ctx.drawImage(croissantImg, -this.width/2, -this.height/2, this.width, this.height);
-                ctx.restore();
-            }
-
-            update() {
-                this.x += Math.cos(this.angle) * this.speed;
-                this.y += Math.sin(this.angle) * this.speed;
-            }
-        }
-
-        class Asteroid {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.speedX = (Math.random() - 0.5) * 4;
-                this.speedY = (Math.random() - 0.5) * 4;
-                this.width = 50;
-                this.height = 50;
-            }
-
-            draw() {
-                ctx.drawImage(ukImg, this.x - this.width/2, this.y - this.height/2, this.width, this.height);
-            }
-
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.x < 0) this.x = canvas.width;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.y < 0) this.y = canvas.height;
-                if (this.y > canvas.height) this.y = 0;
-            }
-        }
-
-        const ship = new Ship();
-        let bullets = [];
-        let asteroids = [];
-        const maxAsteroids = 5;
-        let lives = 3;
-        let score = 0;
-        let timeLeft = 60;
-        let lastTime = Date.now();
-
-        let keys = {};
-        document.addEventListener('keydown', (e) => { keys[e.code] = true; });
-        document.addEventListener('keyup', (e) => { keys[e.code] = false; });
-
+        // Tu código JavaScript aquí
         function startGame() {
-            gameStarted = true;
-            startScreen.style.display = 'none';
-            canvas.style.display = 'block';
-            backgroundMusic.play();
-            createAsteroids();
-            gameLoop();
+            // Implementa la lógica para iniciar el juego
         }
 
-        function gameLoop() {
-            const now = Date.now();
-            const deltaTime = (now - lastTime) / 1000;
-            lastTime = now;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ship.update();
-            ship.draw();
-
-            bullets.forEach((bullet, index) => {
-                bullet.update();
-                bullet.draw();
-                if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
-                    bullets.splice(index, 1);
-                }
-            });
-
-            asteroids.forEach((asteroid, index) => {
-                asteroid.update();
-                asteroid.draw();
-                if (checkCollision(asteroid, ship)) {
-                    lives--;
-                    asteroids.splice(index, 1);
-                    hitSound.play();
-                }
-            });
-
-            if (lives <= 0) {
-                endGame();
-            }
-
-            score++;
-            updateScore();
-            requestAnimationFrame(gameLoop);
+        function addToRanking() {
+            // Implementa la lógica para añadir al ranking
         }
-
-        function createAsteroids() {
-            for (let i = 0; i < maxAsteroids; i++) {
-                asteroids.push(new Asteroid());
-            }
-        }
-
-        function checkCollision(asteroid, ship) {
-            return (asteroid.x < ship.x + ship.width &&
-                    asteroid.x + asteroid.width > ship.x &&
-                    asteroid.y < ship.y + ship.height &&
-                    asteroid.y + asteroid.height > ship.y);
-        }
-
-        function endGame() {
-            canvas.style.display = 'none';
-            endScreen.style.display = 'flex';
-            scoreText.innerText = `Puntuación: ${score}`;
-        }
-
-        function updateScore() {
-            document.getElementById('ranking').innerHTML = `Puntuación: ${score}`;
-        }
-
-        startButton.addEventListener('click', startGame);
-
-        nextArrow.addEventListener('click', () => {
-            nameScreen.style.display = 'flex';
-            endScreen.style.display = 'none';
-        });
-
-        submitScore.addEventListener('click', () => {
-            const name = nameInput.value.trim();
-            if (name !== "") {
-                const playerData = { name: name, score: score };
-                const playersRef = db.ref('players');
-                playersRef.push(playerData);
-                nameScreen.style.display = 'none';
-            }
-        });
     </script>
 </body>
 </html>
