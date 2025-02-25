@@ -114,7 +114,12 @@
         };
 
         // Inicializar Firebase
-        firebase.initializeApp(firebaseConfig);
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log("Firebase inicializado correctamente");
+        } catch (error) {
+            console.error("Error al inicializar Firebase:", error);
+        }
         const db = firebase.database();
 
         const canvas = document.getElementById('gameCanvas');
@@ -296,7 +301,11 @@
 
         function saveScore(name, score) {
             const newScore = { name, score, timestamp: Date.now() };
-            db.ref('scores').push(newScore);
+            db.ref('scores').push(newScore).then(() => {
+                console.log("Puntuación guardada:", newScore);
+            }).catch(error => {
+                console.error("Error al guardar puntuación:", error);
+            });
         }
 
         function loadAndShowRanking() {
@@ -305,8 +314,11 @@
                 snapshot.forEach(child => {
                     scores.push(child.val());
                 });
-                scores.sort((a, b) => b.score - a.score); // Ordenar de mayor a menor
+                scores.sort((a, b) => b.score - a.score);
                 showRanking(scores);
+            }).catch(error => {
+                console.error("Error al cargar ranking:", error);
+                ranking.innerHTML = '<h2>Ranking</h2><p>Error al cargar</p>';
             });
         }
 
@@ -408,6 +420,7 @@
         }
 
         function startGame() {
+            console.log("Iniciando juego...");
             gameStarted = true;
             startScreen.style.display = 'none';
             canvas.style.display = 'block';
@@ -418,6 +431,8 @@
             gameLoop();
         }
 
+        // Eventos
+        startButton.addEventListener('click', startGame);
         nextArrow.addEventListener('click', showNameScreen);
 
         submitScore.addEventListener('click', () => {
@@ -444,14 +459,14 @@
             }
         });
 
-        startButton.addEventListener('click', startGame);
-
         Promise.all([
             new Promise(resolve => pepeImg.onload = resolve),
             new Promise(resolve => croissantImg.onload = resolve),
             new Promise(resolve => ukImg.onload = resolve)
         ]).then(() => {
             console.log("Imágenes cargadas, listo para iniciar.");
+        }).catch(error => {
+            console.error("Error al cargar imágenes:", error);
         });
 
         window.addEventListener('resize', () => {
