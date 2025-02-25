@@ -1,45 +1,217 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego tipo Asteroids</title>
-    <style>
-        /* Estilos existentes */
-    </style>
+  <meta charset="UTF-8">
+  <title>Asteroids - Juego Retroadaptado</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; color: #fff; }
+    #gameCanvas { display: block; background: #000; }
+    #instructions {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+      font-family: sans-serif;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
-    <div id="game-container">
-        <canvas id="gameCanvas"></canvas>
-        <div id="score">Puntuación: <span id="scoreValue">0</span></div>
-        <div id="lives">Vidas: <span id="livesValue">3</span></div>
-        <button id="startButton" onclick="startGame()">Iniciar Juego</button>
-        <div id="gameOver" style="display: none;">
-            <h2>Game Over</h2>
-            <p>Tu puntuación: <span id="finalScore"></span></p>
-            <input type="text" id="playerName" placeholder="Tu nombre">
-            <button id="addToRankingButton" onclick="addToRanking()">Añadir al Ranking</button>
-        </div>
-    </div>
-    <div id="instructions">
-        <h2>Controles:</h2>
-        <ul>
-            <li>Flecha Izquierda: Girar izquierda</li>
-            <li>Flecha Derecha: Girar derecha</li>
-            <li>Flecha Arriba: Avanzar</li>
-            <li>Flecha Abajo: Retroceder</li>
-            <li>Espacio: Disparar</li>
-        </ul>
-    </div>
-    <script>
-        // Tu código JavaScript aquí
-        function startGame() {
-            // Implementa la lógica para iniciar el juego
-        }
+  <div id="instructions">
+    <p>Flecha Izquierda: Girar izquierda</p>
+    <p>Flecha Derecha: Girar derecha</p>
+    <p>Flecha Arriba: Avanzar</p>
+    <p>Flecha Abajo: Retroceder</p>
+    <p>Espacio: Disparar</p>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    // Configuración inicial del canvas
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-        function addToRanking() {
-            // Implementa la lógica para añadir al ranking
+    // Variables del juego
+    const keys = {};
+    const ship = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      angle: 0,
+      velocity: { x: 0, y: 0 },
+      radius: 20,
+      rotationSpeed: 0.07,
+      acceleration: 0.2,
+      friction: 0.99
+    };
+
+    const lasers = [];
+    const asteroids = [];
+
+    // Eventos de teclado para manejar los controles
+    window.addEventListener('keydown', (e) => {
+      keys[e.key] = true;
+    });
+    window.addEventListener('keyup', (e) => {
+      keys[e.key] = false;
+      if (e.key === ' ') {
+        // Permite disparar de nuevo al soltar la tecla espacio
+        keys.spaceFired = false;
+      }
+    });
+
+    // Función para convertir grados a radianes
+    function degToRad(deg) {
+      return deg * Math.PI / 180;
+    }
+
+    // Función para crear un asteroide aleatorio
+    function createAsteroid() {
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        radius: 30 + Math.random() * 20
+      };
+    }
+
+    // Inicializar algunos asteroides
+    for (let i = 0; i < 5; i++) {
+      asteroids.push(createAsteroid());
+    }
+
+    // Función principal del bucle del juego
+    function gameLoop() {
+      update();
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Actualizar la lógica del juego
+    function update() {
+      // Rotación de la nave
+      if (keys['ArrowLeft']) {
+        ship.angle -= ship.rotationSpeed;
+      }
+      if (keys['ArrowRight']) {
+        ship.angle += ship.rotationSpeed;
+      }
+      // Aceleración hacia adelante
+      if (keys['ArrowUp']) {
+        ship.velocity.x += Math.cos(ship.angle) * ship.acceleration;
+        ship.velocity.y += Math.sin(ship.angle) * ship.acceleration;
+      }
+      // Retroceso con la flecha abajo
+      if (keys['ArrowDown']) {
+        ship.velocity.x -= Math.cos(ship.angle) * ship.acceleration * 0.5;
+        ship.velocity.y -= Math.sin(ship.angle) * ship.acceleration * 0.5;
+      }
+      // Actualizar posición de la nave
+      ship.x += ship.velocity.x;
+      ship.y += ship.velocity.y;
+      // Aplicar rozamiento para suavizar el movimiento
+      ship.velocity.x *= ship.friction;
+      ship.velocity.y *= ship.friction;
+
+      // Envolver la nave en la pantalla
+      if (ship.x < 0) ship.x = canvas.width;
+      if (ship.x > canvas.width) ship.x = 0;
+      if (ship.y < 0) ship.y = canvas.height;
+      if (ship.y > canvas.height) ship.y = 0;
+
+      // Disparos: generar un láser solo una vez por pulsación
+      if (keys[' '] && !keys.spaceFired) {
+        lasers.push({
+          x: ship.x + Math.cos(ship.angle) * ship.radius,
+          y: ship.y + Math.sin(ship.angle) * ship.radius,
+          vx: Math.cos(ship.angle) * 5 + ship.velocity.x,
+          vy: Math.sin(ship.angle) * 5 + ship.velocity.y,
+          radius: 2
+        });
+        keys.spaceFired = true;
+      }
+
+      // Actualizar la posición de los láseres y eliminarlos si salen de pantalla
+      for (let i = lasers.length - 1; i >= 0; i--) {
+        const laser = lasers[i];
+        laser.x += laser.vx;
+        laser.y += laser.vy;
+        if (laser.x < 0 || laser.x > canvas.width || laser.y < 0 || laser.y > canvas.height) {
+          lasers.splice(i, 1);
         }
-    </script>
+      }
+
+      // Actualizar la posición de los asteroides y envolverlos en pantalla
+      asteroids.forEach(asteroid => {
+        asteroid.x += asteroid.vx;
+        asteroid.y += asteroid.vy;
+        if (asteroid.x < 0) asteroid.x = canvas.width;
+        if (asteroid.x > canvas.width) asteroid.x = 0;
+        if (asteroid.y < 0) asteroid.y = canvas.height;
+        if (asteroid.y > canvas.height) asteroid.y = 0;
+      });
+
+      // Detección de colisiones entre láseres y asteroides
+      for (let i = asteroids.length - 1; i >= 0; i--) {
+        for (let j = lasers.length - 1; j >= 0; j--) {
+          const dx = asteroids[i].x - lasers[j].x;
+          const dy = asteroids[i].y - lasers[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < asteroids[i].radius + lasers[j].radius) {
+            // Se elimina el asteroide y el láser al colisionar
+            asteroids.splice(i, 1);
+            lasers.splice(j, 1);
+            break;
+          }
+        }
+      }
+    }
+
+    // Renderizar el estado del juego
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Dibujar la nave
+      ctx.save();
+      ctx.translate(ship.x, ship.y);
+      ctx.rotate(ship.angle);
+      ctx.beginPath();
+      ctx.moveTo(ship.radius, 0);
+      ctx.lineTo(-ship.radius, ship.radius * 0.6);
+      ctx.lineTo(-ship.radius, -ship.radius * 0.6);
+      ctx.closePath();
+      ctx.strokeStyle = 'white';
+      ctx.stroke();
+      ctx.restore();
+
+      // Dibujar los láseres
+      lasers.forEach(laser => {
+        ctx.beginPath();
+        ctx.arc(laser.x, laser.y, laser.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'red';
+        ctx.fill();
+      });
+
+      // Dibujar los asteroides
+      ctx.strokeStyle = 'gray';
+      asteroids.forEach(asteroid => {
+        ctx.beginPath();
+        ctx.arc(asteroid.x, asteroid.y, asteroid.radius, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+    }
+
+    // Iniciar el bucle principal del juego
+    requestAnimationFrame(gameLoop);
+
+    // Actualizar tamaño del canvas al redimensionar la ventana
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
 </body>
 </html>
