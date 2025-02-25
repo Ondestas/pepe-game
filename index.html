@@ -101,7 +101,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
     <script>
-        // Configuración de Firebase con tus credenciales
+        // Configuración de Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBKgK9OwzGD947pTuXSkf4bEJ70HqGL0Ck",
             authDomain: "pepegame-763c5.firebaseapp.com",
@@ -113,15 +113,18 @@
             measurementId: "G-3CFG6X9K0E"
         };
 
-        // Inicializar Firebase
+        // Inicializar Firebase con manejo de errores
+        let db;
         try {
             firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
             console.log("Firebase inicializado correctamente");
         } catch (error) {
             console.error("Error al inicializar Firebase:", error);
+            db = null; // Seguimos sin Firebase si falla
         }
-        const db = firebase.database();
 
+        // Elementos del DOM
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const backgroundMusic = document.getElementById('backgroundMusic');
@@ -139,6 +142,7 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
+        // Imágenes
         const pepeImg = new Image();
         pepeImg.src = 'pepe.png';
         const croissantImg = new Image();
@@ -300,26 +304,34 @@
         }
 
         function saveScore(name, score) {
-            const newScore = { name, score, timestamp: Date.now() };
-            db.ref('scores').push(newScore).then(() => {
-                console.log("Puntuación guardada:", newScore);
-            }).catch(error => {
-                console.error("Error al guardar puntuación:", error);
-            });
+            if (db) {
+                const newScore = { name, score, timestamp: Date.now() };
+                db.ref('scores').push(newScore).then(() => {
+                    console.log("Puntuación guardada:", newScore);
+                }).catch(error => {
+                    console.error("Error al guardar puntuación:", error);
+                });
+            } else {
+                console.warn("Firebase no disponible, puntuación no guardada");
+            }
         }
 
         function loadAndShowRanking() {
-            db.ref('scores').orderByChild('score').limitToLast(5).once('value', (snapshot) => {
-                const scores = [];
-                snapshot.forEach(child => {
-                    scores.push(child.val());
+            if (db) {
+                db.ref('scores').orderByChild('score').limitToLast(5).once('value', (snapshot) => {
+                    const scores = [];
+                    snapshot.forEach(child => {
+                        scores.push(child.val());
+                    });
+                    scores.sort((a, b) => b.score - a.score);
+                    showRanking(scores);
+                }).catch(error => {
+                    console.error("Error al cargar ranking:", error);
+                    ranking.innerHTML = '<h2>Ranking</h2><p>Error al cargar</p>';
                 });
-                scores.sort((a, b) => b.score - a.score);
-                showRanking(scores);
-            }).catch(error => {
-                console.error("Error al cargar ranking:", error);
-                ranking.innerHTML = '<h2>Ranking</h2><p>Error al cargar</p>';
-            });
+            } else {
+                ranking.innerHTML = '<h2>Ranking</h2><p>Firebase no disponible</p>';
+            }
         }
 
         function showRanking(scores) {
@@ -420,7 +432,7 @@
         }
 
         function startGame() {
-            console.log("Iniciando juego...");
+            console.log("Botón 'Comenzag' clicado, iniciando juego...");
             gameStarted = true;
             startScreen.style.display = 'none';
             canvas.style.display = 'block';
@@ -431,11 +443,18 @@
             gameLoop();
         }
 
-        // Eventos
-        startButton.addEventListener('click', startGame);
-        nextArrow.addEventListener('click', showNameScreen);
-
+        // Registro de eventos al inicio
+        console.log("Registrando eventos...");
+        startButton.addEventListener('click', () => {
+            console.log("Evento click disparado en startButton");
+            startGame();
+        });
+        nextArrow.addEventListener('click', () => {
+            console.log("Evento click disparado en nextArrow");
+            showNameScreen();
+        });
         submitScore.addEventListener('click', () => {
+            console.log("Evento click disparado en submitScore");
             const name = nameInput.value.trim();
             if (name) {
                 saveScore(name, score);
@@ -459,10 +478,11 @@
             }
         });
 
+        // Carga de imágenes con espera explícita
         Promise.all([
-            new Promise(resolve => pepeImg.onload = resolve),
-            new Promise(resolve => croissantImg.onload = resolve),
-            new Promise(resolve => ukImg.onload = resolve)
+            new Promise(resolve => { pepeImg.onload = resolve; pepeImg.onerror = () => console.error("Error cargando pepe.png"); }),
+            new Promise(resolve => { croissantImg.onload = resolve; croissantImg.onerror = () => console.error("Error cargando croissant.png"); }),
+            new Promise(resolve => { ukImg.onload = resolve; ukImg.onerror = () => console.error("Error cargando uk.jpg"); })
         ]).then(() => {
             console.log("Imágenes cargadas, listo para iniciar.");
         }).catch(error => {
@@ -475,6 +495,8 @@
             ship.x = canvas.width / 2;
             ship.y = canvas.height / 2;
         });
+
+        console.log("Script cargado completamente");
     </script>
 </body>
 </html>
