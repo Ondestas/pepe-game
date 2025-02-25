@@ -202,7 +202,7 @@
         };
         pedroAssets.ship.src = 'pedro.png';
         pedroAssets.bullet.src = 'croissant_pedro.png';
-        pedroAssets.asteroid.src = 'uk_pedro.png'; // Cambiado a .png
+        pedroAssets.asteroid.src = 'uk_pedro.png';
 
         const hectorAssets = {
             ship: new Image(),
@@ -213,7 +213,7 @@
         };
         hectorAssets.ship.src = 'hector.png';
         hectorAssets.bullet.src = 'croissant_hector.png';
-        hectorAssets.asteroid.src = 'uk_hector.png'; // Cambiado a .png
+        hectorAssets.asteroid.src = 'uk_hector.png';
 
         // Degradados por personaje
         const pepeGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -392,7 +392,6 @@
                 pepeBullets.push(pepeCreateBullet(pepeShip.x, pepeShip.y, pepeShip.angle));
                 pepeKeys['spacePressed'] = true;
                 pepeLastShotTime = currentTime;
-                // Sonido movido al impacto
             }
             if (!pepeKeys['Space']) pepeKeys['spacePressed'] = false;
 
@@ -592,7 +591,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Jiras restantes', canvas.width - 10, canvas.height - lifeSize - 15);
             for (let i = 0; i < pedroLives; i++) {
                 ctx.drawImage(pedroAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -605,7 +604,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Tiempo ghestante: ${Math.ceil(pedroTimeLeft)}`;
+            const tiempoText = `Lo que te queda chaval: ${Math.ceil(pedroTimeLeft)}`;
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
@@ -656,7 +655,6 @@
                 pedroBullets.push(pedroCreateBullet(pedroShip.x, pedroShip.y, pedroShip.angle));
                 pedroKeys['spacePressed'] = true;
                 pedroLastShotTime = currentTime;
-                // Sonido movido al impacto
             }
             if (!pedroKeys['Space']) pedroKeys['spacePressed'] = false;
 
@@ -856,7 +854,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Ayahuascas restantes', canvas.width - 10, canvas.height - lifeSize - 15);
             for (let i = 0; i < hectorLives; i++) {
                 ctx.drawImage(hectorAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -869,7 +867,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Tiempo ghestante: ${Math.ceil(hectorTimeLeft)}`;
+            const tiempoText = `Queda poco co: ${Math.ceil(hectorTimeLeft)}`;
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
@@ -920,7 +918,6 @@
                 hectorBullets.push(hectorCreateBullet(hectorShip.x, hectorShip.y, hectorShip.angle));
                 hectorKeys['spacePressed'] = true;
                 hectorLastShotTime = currentTime;
-                // Sonido movido al impacto
             }
             if (!hectorKeys['Space']) hectorKeys['spacePressed'] = false;
 
@@ -1061,7 +1058,7 @@
                 retryButton.style.display = 'block';
                 return;
             }
-            db.ref('scores').orderByChild('score').limitToLast(5).once('value', (snapshot) => {
+            db.ref('scores').orderByChild('score').limitToLast(8).once('value', (snapshot) => {
                 const scores = [];
                 snapshot.forEach(child => {
                     scores.push(child.val());
@@ -1082,6 +1079,9 @@
             characterScreen.style.display = 'flex';
         }
 
+        // Control para evitar múltiples envíos
+        let scoreSubmitted = false;
+
         // Registro de eventos
         console.log("Registrando eventos...");
         startButton.addEventListener('click', showCharacterScreen);
@@ -1089,6 +1089,7 @@
             button.addEventListener('click', () => {
                 const character = button.getAttribute('data-character');
                 console.log("Personaje seleccionado:", character);
+                scoreSubmitted = false; // Reiniciar al empezar un nuevo juego
                 if (character === 'pepe') startPepeGame();
                 else if (character === 'pedro') startPedroGame();
                 else if (character === 'hector') startHectorGame();
@@ -1100,15 +1101,26 @@
             nameInput.value = '';
             ranking.innerHTML = '';
             retryButton.style.display = 'none';
+            nameInput.disabled = false; // Habilitar entrada inicialmente
+            submitScore.disabled = false; // Habilitar botón inicialmente
             loadAndShowRanking();
         });
         submitScore.addEventListener('click', () => {
             console.log("Botón Enviar clicado");
+            if (scoreSubmitted) {
+                console.log("Puntuación ya enviada, no se permite más envíos");
+                return;
+            }
             const name = nameInput.value.trim();
             if (name) {
                 const score = pepeGameStarted ? pepeScore : pedroGameStarted ? pedroScore : hectorScore;
                 console.log("Enviando puntuación:", { name, score });
                 saveScore(name, score);
+                scoreSubmitted = true;
+                nameInput.disabled = true; // Deshabilitar entrada
+                submitScore.disabled = true; // Deshabilitar botón
+                nameInput.style.display = 'none'; // Ocultar campo de entrada
+                submitScore.style.display = 'none'; // Ocultar botón "Enviar"
                 setTimeout(() => {
                     loadAndShowRanking();
                 }, 500);
