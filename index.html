@@ -12,14 +12,13 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background: linear-gradient(45deg, blue, white, red);
         }
         canvas {
             width: 100vw;
             height: 100vh;
             display: none;
         }
-        #startScreen, #endScreen, #nameScreen {
+        #startScreen, #characterScreen, #endScreen, #nameScreen {
             position: absolute;
             display: flex;
             flex-direction: column;
@@ -32,8 +31,14 @@
             font-family: 'Press Start 2P', cursive;
         }
         #startScreen { display: flex; }
+        #characterScreen { 
+            flex-direction: row; 
+            justify-content: space-around; 
+            align-items: center; 
+            display: none; 
+        }
         #endScreen, #nameScreen { display: none; }
-        #startButton, #submitScore, #rankingButton, #retryButton {
+        #startButton, #submitScore, #rankingButton, #retryButton, .characterButton {
             padding: 20px 40px;
             font-size: 24px;
             background-color: #4CAF50;
@@ -43,9 +48,9 @@
             border-radius: 5px;
             transition: background-color 0.3s;
             font-family: 'Press Start 2P', cursive;
-            margin-top: 20px;
+            margin: 10px;
         }
-        #startButton:hover, #submitScore:hover, #rankingButton:hover, #retryButton:hover {
+        #startButton:hover, #submitScore:hover, #rankingButton:hover, #retryButton:hover, .characterButton:hover {
             background-color: #45a049;
         }
         #nameInput {
@@ -57,6 +62,16 @@
         #ranking, #controls {
             margin-top: 20px;
             text-align: center;
+        }
+        .characterOption {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .characterImage {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -74,6 +89,20 @@
             <p>Espacio: Disparar</p>
         </div>
     </div>
+    <div id="characterScreen">
+        <div class="characterOption">
+            <img src="pepe.png" class="characterImage" alt="Pepe">
+            <button class="characterButton" data-character="pepe">Pepe</button>
+        </div>
+        <div class="characterOption">
+            <img src="pedro.png" class="characterImage" alt="Pedro">
+            <button class="characterButton" data-character="pedro">Pedro</button>
+        </div>
+        <div class="characterOption">
+            <img src="hector.png" class="characterImage" alt="Héctor">
+            <button class="characterButton" data-character="hector">Héctor</button>
+        </div>
+    </div>
     <div id="endScreen">
         <h1>Se tegminó, o la la</h1>
         <p id="scoreText"></p>
@@ -86,11 +115,23 @@
         <div id="ranking"></div>
         <button id="retryButton" style="display: none;">Inténtalo otgha vessss</button>
     </div>
-    <audio id="backgroundMusic" loop>
+    <audio id="backgroundMusicPepe" loop>
         <source src="musica.mp3" type="audio/mp3">
     </audio>
-    <audio id="hitSound">
+    <audio id="hitSoundPepe">
         <source src="tos.mp3" type="audio/mp3">
+    </audio>
+    <audio id="backgroundMusicPedro" loop>
+        <source src="musica_pedro.mp3" type="audio/mp3">
+    </audio>
+    <audio id="hitSoundPedro">
+        <source src="tos_pedro.mp3" type="audio/mp3">
+    </audio>
+    <audio id="backgroundMusicHector" loop>
+        <source src="musica_hector.mp3" type="audio/mp3">
+    </audio>
+    <audio id="hitSoundHector">
+        <source src="tos_hector.mp3" type="audio/mp3">
     </audio>
 
     <!-- Firebase SDK -->
@@ -124,9 +165,8 @@
         // Elementos del DOM
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const backgroundMusic = document.getElementById('backgroundMusic');
-        const hitSound = document.getElementById('hitSound');
         const startScreen = document.getElementById('startScreen');
+        const characterScreen = document.getElementById('characterScreen');
         const endScreen = document.getElementById('endScreen');
         const nameScreen = document.getElementById('nameScreen');
         const startButton = document.getElementById('startButton');
@@ -136,117 +176,865 @@
         const ranking = document.getElementById('ranking');
         const rankingButton = document.getElementById('rankingButton');
         const retryButton = document.getElementById('retryButton');
+        const characterButtons = document.querySelectorAll('.characterButton');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // Imágenes
-        const pepeImg = new Image();
-        pepeImg.src = 'pepe.png';
-        const croissantImg = new Image();
-        croissantImg.src = 'croissant.png';
-        const ukImg = new Image();
-        ukImg.src = 'uk.jpg';
+        // Recursos por personaje
+        const pepeAssets = {
+            ship: new Image(),
+            bullet: new Image(),
+            asteroid: new Image(),
+            backgroundMusic: document.getElementById('backgroundMusicPepe'),
+            hitSound: document.getElementById('hitSoundPepe')
+        };
+        pepeAssets.ship.src = 'pepe.png';
+        pepeAssets.bullet.src = 'croissant_pepe.png';
+        pepeAssets.asteroid.src = 'uk_pepe.jpg';
 
-        backgroundMusic.loop = true;
-        backgroundMusic.volume = 0.5;
+        const pedroAssets = {
+            ship: new Image(),
+            bullet: new Image(),
+            asteroid: new Image(),
+            backgroundMusic: document.getElementById('backgroundMusicPedro'),
+            hitSound: document.getElementById('hitSoundPedro')
+        };
+        pedroAssets.ship.src = 'pedro.png';
+        pedroAssets.bullet.src = 'croissant_pedro.png';
+        pedroAssets.asteroid.src = 'uk_pedro.png';
 
-        let gameStarted = false;
-        let lastShotTime = 0;
+        const hectorAssets = {
+            ship: new Image(),
+            bullet: new Image(),
+            asteroid: new Image(),
+            backgroundMusic: document.getElementById('backgroundMusicHector'),
+            hitSound: document.getElementById('hitSoundHector')
+        };
+        hectorAssets.ship.src = 'hector.png';
+        hectorAssets.bullet.src = 'croissant_hector.png';
+        hectorAssets.asteroid.src = 'uk_hector.png';
 
-        class Ship {
-            constructor() {
-                this.x = canvas.width / 2;
-                this.y = canvas.height / 2;
-                this.angle = 0;
-                this.speed = 0;
-                this.width = 80;
-                this.height = 80;
-            }
+        // Degradados por personaje
+        const pepeGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        pepeGradient.addColorStop(0, 'blue');
+        pepeGradient.addColorStop(0.5, 'white');
+        pepeGradient.addColorStop(1, 'red');
 
-            draw() {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
-                ctx.drawImage(pepeImg, -this.width/2, -this.height/2, this.width, this.height);
-                ctx.restore();
-            }
+        const pedroGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        pedroGradient.addColorStop(0, '#d3d3d3');
+        pedroGradient.addColorStop(0.5, '#e0e0e0');
+        pedroGradient.addColorStop(1, '#c0c0c0');
 
-            update() {
-                this.x += Math.cos(this.angle) * this.speed;
-                this.y += Math.sin(this.angle) * this.speed;
-                if (this.x < 0) this.x = canvas.width;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.y < 0) this.y = canvas.height;
-                if (this.y > canvas.height) this.y = 0;
+        const hectorGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        hectorGradient.addColorStop(0, 'yellow');
+        hectorGradient.addColorStop(0.25, 'red');
+        hectorGradient.addColorStop(0.5, 'yellow');
+        hectorGradient.addColorStop(0.75, 'red');
+        hectorGradient.addColorStop(1, 'yellow');
+
+        // --- Juego para Pepe ---
+        let pepeGameStarted = false;
+        let pepeLastShotTime = 0;
+        let pepeShip = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            angle: 0,
+            speed: 0,
+            width: 80,
+            height: 80,
+            image: pepeAssets.ship
+        };
+        let pepeBullets = [];
+        let pepeAsteroids = [];
+        const pepeMaxAsteroids = 5;
+        let pepeLives = 3;
+        let pepeScore = 0;
+        let pepeTimeLeft = 60;
+        let pepeLastTime = 0;
+        let pepeKeys = {};
+
+        function pepeDrawShip() {
+            ctx.save();
+            ctx.translate(pepeShip.x, pepeShip.y);
+            ctx.rotate(pepeShip.angle);
+            ctx.drawImage(pepeShip.image, -pepeShip.width/2, -pepeShip.height/2, pepeShip.width, pepeShip.height);
+            ctx.restore();
+        }
+
+        function pepeUpdateShip() {
+            pepeShip.x += Math.cos(pepeShip.angle) * pepeShip.speed;
+            pepeShip.y += Math.sin(pepeShip.angle) * pepeShip.speed;
+            if (pepeShip.x < 0) pepeShip.x = canvas.width;
+            if (pepeShip.x > canvas.width) pepeShip.x = 0;
+            if (pepeShip.y < 0) pepeShip.y = canvas.height;
+            if (pepeShip.y > canvas.height) pepeShip.y = 0;
+        }
+
+        function pepeCreateBullet(x, y, angle) {
+            return {
+                x: x,
+                y: y,
+                angle: angle,
+                speed: 10,
+                width: 60,
+                height: 60,
+                image: pepeAssets.bullet
+            };
+        }
+
+        function pepeDrawBullet(bullet) {
+            ctx.save();
+            ctx.translate(bullet.x, bullet.y);
+            ctx.rotate(bullet.angle);
+            ctx.drawImage(bullet.image, -bullet.width/2, -bullet.height/2, bullet.width, bullet.height);
+            ctx.restore();
+        }
+
+        function pepeUpdateBullet(bullet) {
+            bullet.x += Math.cos(bullet.angle) * bullet.speed;
+            bullet.y += Math.sin(bullet.angle) * bullet.speed;
+        }
+
+        function pepeCreateAsteroid() {
+            return {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                speedX: (Math.random() - 0.5) * 4,
+                speedY: (Math.random() - 0.5) * 4,
+                width: 50,
+                height: 50,
+                image: pepeAssets.asteroid
+            };
+        }
+
+        function pepeDrawAsteroid(asteroid) {
+            ctx.drawImage(asteroid.image, asteroid.x - asteroid.width/2, asteroid.y - asteroid.height/2, asteroid.width, asteroid.height);
+        }
+
+        function pepeUpdateAsteroid(asteroid) {
+            asteroid.x += asteroid.speedX;
+            asteroid.y += asteroid.speedY;
+            if (asteroid.x < 0) asteroid.x = canvas.width;
+            if (asteroid.x > canvas.width) asteroid.x = 0;
+            if (asteroid.y < 0) asteroid.y = canvas.height;
+            if (asteroid.y > canvas.height) asteroid.y = 0;
+        }
+
+        function pepeDrawLives() {
+            const lifeSize = 80;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(canvas.width - 300, canvas.height - lifeSize - 40, 280, 30);
+            ctx.fillStyle = 'yellow';
+            ctx.font = '16px "Press Start 2P"';
+            ctx.textAlign = 'right';
+            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            for (let i = 0; i < pepeLives; i++) {
+                ctx.drawImage(pepeAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
         }
 
-        class Bullet {
-            constructor(x, y, angle) {
-                this.x = x;
-                this.y = y;
-                this.angle = angle;
-                this.speed = 10;
-                this.width = 60;
-                this.height = 60;
+        function pepeDrawHUD() {
+            ctx.font = '16px "Press Start 2P"';
+            ctx.textAlign = 'left';
+            const puntosText = `Puntos: ${pepeScore}`;
+            const puntosWidth = ctx.measureText(puntosText).width;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(10, 10, puntosWidth + 20, 30);
+            const tiempoText = `Tiempo ghestante: ${Math.ceil(pepeTimeLeft)}`;
+            const tiempoWidth = ctx.measureText(tiempoText).width;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(10, 40, tiempoWidth + 20, 30);
+            ctx.fillStyle = 'yellow';
+            ctx.fillText(puntosText, 20, 30);
+            ctx.fillText(tiempoText, 20, 60);
+        }
+
+        function pepeGameLoop() {
+            if (!pepeGameStarted) return;
+
+            const currentTime = Date.now();
+            const deltaTime = (currentTime - pepeLastTime) / 1000;
+            pepeLastTime = currentTime;
+
+            pepeTimeLeft -= deltaTime;
+            if (pepeTimeLeft <= 0) {
+                pepeGameStarted = false;
+                canvas.style.display = 'none';
+                endScreen.style.display = 'flex';
+                scoreText.textContent = `Has ghoto: ${pepeScore}`;
+                return;
             }
 
-            draw() {
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
-                ctx.drawImage(croissantImg, -this.width/2, -this.height/2, this.width, this.height);
-                ctx.restore();
-            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = pepeGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            update() {
-                this.x += Math.cos(this.angle) * this.speed;
-                this.y += Math.sin(this.angle) * this.speed;
+            if (pepeKeys['ArrowLeft']) {
+                console.log("Pepe: Girando izquierda");
+                pepeShip.angle -= 0.1;
+            }
+            if (pepeKeys['ArrowRight']) {
+                console.log("Pepe: Girando derecha");
+                pepeShip.angle += 0.1;
+            }
+            if (pepeKeys['ArrowUp']) {
+                console.log("Pepe: Avanzando");
+                pepeShip.speed = 5;
+            }
+            if (pepeKeys['ArrowDown']) {
+                console.log("Pepe: Retrocediendo");
+                pepeShip.speed = -5;
+            }
+            if (!pepeKeys['ArrowUp'] && !pepeKeys['ArrowDown']) pepeShip.speed = 0;
+            if (pepeKeys['Space'] && !pepeKeys['spacePressed'] && (currentTime - pepeLastShotTime) >= 500) {
+                console.log("Pepe: Disparando");
+                pepeBullets.push(pepeCreateBullet(pepeShip.x, pepeShip.y, pepeShip.angle));
+                pepeKeys['spacePressed'] = true;
+                pepeLastShotTime = currentTime;
+                pepeAssets.hitSound.load();
+                pepeAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+            }
+            if (!pepeKeys['Space']) pepeKeys['spacePressed'] = false;
+
+            pepeUpdateShip();
+            pepeDrawShip();
+
+            pepeBullets = pepeBullets.filter(b => 
+                b.x > 0 && b.x < canvas.width && 
+                b.y > 0 && b.y < canvas.height
+            );
+            pepeBullets.forEach(b => {
+                pepeUpdateBullet(b);
+                pepeDrawBullet(b);
+            });
+
+            pepeAsteroids.forEach((a, aIndex) => {
+                pepeUpdateAsteroid(a);
+                pepeDrawAsteroid(a);
+
+                pepeBullets.forEach((b, bIndex) => {
+                    if (Math.hypot(a.x - b.x, a.y - b.y) < a.width/2 + b.width/2) {
+                        pepeAssets.hitSound.load();
+                        pepeAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+                        createExplosion(a.x, a.y);
+                        pepeAsteroids.splice(aIndex, 1);
+                        pepeBullets.splice(bIndex, 1);
+                        pepeAsteroids.push(pepeCreateAsteroid());
+                        pepeScore += 1;
+                    }
+                });
+
+                if (Math.hypot(a.x - pepeShip.x, a.y - pepeShip.y) < a.width/2 + pepeShip.width/2) {
+                    pepeLives -= 1;
+                    pepeAssets.hitSound.load();
+                    pepeAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+                    createExplosion(pepeShip.x, pepeShip.y);
+                    pepeShip.x = canvas.width / 2;
+                    pepeShip.y = canvas.height / 2;
+                    pepeShip.speed = 0;
+                    pepeShip.angle = 0;
+                    pepeAsteroids.splice(aIndex, 1);
+                    pepeAsteroids.push(pepeCreateAsteroid());
+                    if (pepeLives <= 0) {
+                        pepeGameStarted = false;
+                        canvas.style.display = 'none';
+                        endScreen.style.display = 'flex';
+                        scoreText.textContent = `Has ghoto: ${pepeScore}`;
+                        return;
+                    }
+                }
+            });
+
+            pepeDrawLives();
+            pepeDrawHUD();
+
+            requestAnimationFrame(pepeGameLoop);
+        }
+
+        function startPepeGame() {
+            console.log("Iniciando juego de Pepe");
+            pepeGameStarted = true;
+            pepeShip = {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                angle: 0,
+                speed: 0,
+                width: 80,
+                height: 80,
+                image: pepeAssets.ship
+            };
+            pepeBullets = [];
+            pepeAsteroids = [];
+            for (let i = 0; i < pepeMaxAsteroids; i++) {
+                pepeAsteroids.push(pepeCreateAsteroid());
+            }
+            pepeLives = 3;
+            pepeScore = 0;
+            pepeTimeLeft = 60;
+            pepeLastTime = Date.now();
+            pepeKeys = {};
+            // Limpiar eventos anteriores
+            document.removeEventListener('keydown', pedroKeyDownHandler);
+            document.removeEventListener('keyup', pedroKeyUpHandler);
+            document.removeEventListener('keydown', hectorKeyDownHandler);
+            document.removeEventListener('keyup', hectorKeyUpHandler);
+            // Registrar eventos para Pepe
+            document.addEventListener('keydown', pepeKeyDownHandler);
+            document.addEventListener('keyup', pepeKeyUpHandler);
+            characterScreen.style.display = 'none';
+            canvas.style.display = 'block';
+            pedroAssets.backgroundMusic.pause();
+            hectorAssets.backgroundMusic.pause();
+            pepeAssets.backgroundMusic.load();
+            pepeAssets.backgroundMusic.play().catch(error => console.log("Error al reproducir música de Pepe:", error));
+            pepeGameLoop();
+        }
+
+        function pepeKeyDownHandler(e) { 
+            pepeKeys[e.code] = true; 
+            console.log("Tecla presionada en Pepe:", e.code);
+        }
+        function pepeKeyUpHandler(e) { 
+            pepeKeys[e.code] = false; 
+            console.log("Tecla soltada en Pepe:", e.code);
+        }
+
+        // --- Juego para Pedro ---
+        let pedroGameStarted = false;
+        let pedroLastShotTime = 0;
+        let pedroShip = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            angle: 0,
+            speed: 0,
+            width: 80,
+            height: 80,
+            image: pedroAssets.ship
+        };
+        let pedroBullets = [];
+        let pedroAsteroids = [];
+        const pedroMaxAsteroids = 5;
+        let pedroLives = 3;
+        let pedroScore = 0;
+        let pedroTimeLeft = 60;
+        let pedroLastTime = 0;
+        let pedroKeys = {};
+
+        function pedroDrawShip() {
+            ctx.save();
+            ctx.translate(pedroShip.x, pedroShip.y);
+            ctx.rotate(pedroShip.angle);
+            ctx.drawImage(pedroShip.image, -pedroShip.width/2, -pedroShip.height/2, pedroShip.width, pedroShip.height);
+            ctx.restore();
+        }
+
+        function pedroUpdateShip() {
+            pedroShip.x += Math.cos(pedroShip.angle) * pedroShip.speed;
+            pedroShip.y += Math.sin(pedroShip.angle) * pedroShip.speed;
+            if (pedroShip.x < 0) pedroShip.x = canvas.width;
+            if (pedroShip.x > canvas.width) pedroShip.x = 0;
+            if (pedroShip.y < 0) pedroShip.y = canvas.height;
+            if (pedroShip.y > canvas.height) pedroShip.y = 0;
+        }
+
+        function pedroCreateBullet(x, y, angle) {
+            return {
+                x: x,
+                y: y,
+                angle: angle,
+                speed: 10,
+                width: 60,
+                height: 60,
+                image: pedroAssets.bullet
+            };
+        }
+
+        function pedroDrawBullet(bullet) {
+            ctx.save();
+            ctx.translate(bullet.x, bullet.y);
+            ctx.rotate(bullet.angle);
+            ctx.drawImage(bullet.image, -bullet.width/2, -bullet.height/2, bullet.width, bullet.height);
+            ctx.restore();
+        }
+
+        function pedroUpdateBullet(bullet) {
+            bullet.x += Math.cos(bullet.angle) * bullet.speed;
+            bullet.y += Math.sin(bullet.angle) * bullet.speed;
+        }
+
+        function pedroCreateAsteroid() {
+            return {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                speedX: (Math.random() - 0.5) * 4,
+                speedY: (Math.random() - 0.5) * 4,
+                width: 50,
+                height: 50,
+                image: pedroAssets.asteroid
+            };
+        }
+
+        function pedroDrawAsteroid(asteroid) {
+            ctx.drawImage(asteroid.image, asteroid.x - asteroid.width/2, asteroid.y - asteroid.height/2, asteroid.width, asteroid.height);
+        }
+
+        function pedroUpdateAsteroid(asteroid) {
+            asteroid.x += asteroid.speedX;
+            asteroid.y += asteroid.speedY;
+            if (asteroid.x < 0) asteroid.x = canvas.width;
+            if (asteroid.x > canvas.width) asteroid.x = 0;
+            if (asteroid.y < 0) asteroid.y = canvas.height;
+            if (asteroid.y > canvas.height) asteroid.y = 0;
+        }
+
+        function pedroDrawLives() {
+            const lifeSize = 80;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(canvas.width - 300, canvas.height - lifeSize - 40, 280, 30);
+            ctx.fillStyle = 'yellow';
+            ctx.font = '16px "Press Start 2P"';
+            ctx.textAlign = 'right';
+            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            for (let i = 0; i < pedroLives; i++) {
+                ctx.drawImage(pedroAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
         }
 
-        class Asteroid {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.speedX = (Math.random() - 0.5) * 4;
-                this.speedY = (Math.random() - 0.5) * 4;
-                this.width = 50;
-                this.height = 50;
+        function pedroDrawHUD() {
+            ctx.font = '16px "Press Start 2P"';
+            ctx.textAlign = 'left';
+            const puntosText = `Puntos: ${pedroScore}`;
+            const puntosWidth = ctx.measureText(puntosText).width;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(10, 10, puntosWidth + 20, 30);
+            const tiempoText = `Tiempo ghestante: ${Math.ceil(pedroTimeLeft)}`;
+            const tiempoWidth = ctx.measureText(tiempoText).width;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(10, 40, tiempoWidth + 20, 30);
+            ctx.fillStyle = 'yellow';
+            ctx.fillText(puntosText, 20, 30);
+            ctx.fillText(tiempoText, 20, 60);
+        }
+
+        function pedroGameLoop() {
+            if (!pedroGameStarted) return;
+
+            const currentTime = Date.now();
+            const deltaTime = (currentTime - pedroLastTime) / 1000;
+            pedroLastTime = currentTime;
+
+            pedroTimeLeft -= deltaTime;
+            if (pedroTimeLeft <= 0) {
+                pedroGameStarted = false;
+                canvas.style.display = 'none';
+                endScreen.style.display = 'flex';
+                scoreText.textContent = `Has ghoto: ${pedroScore}`;
+                return;
             }
 
-            draw() {
-                ctx.drawImage(ukImg, this.x - this.width/2, this.y - this.height/2, this.width, this.height);
-            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = pedroGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-                if (this.x < 0) this.x = canvas.width;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.y < 0) this.y = canvas.height;
-                if (this.y > canvas.height) this.y = 0;
+            if (pedroKeys['ArrowLeft']) {
+                console.log("Pedro: Girando izquierda");
+                pedroShip.angle -= 0.1;
+            }
+            if (pedroKeys['ArrowRight']) {
+                console.log("Pedro: Girando derecha");
+                pedroShip.angle += 0.1;
+            }
+            if (pedroKeys['ArrowUp']) {
+                console.log("Pedro: Avanzando");
+                pedroShip.speed = 5;
+            }
+            if (pedroKeys['ArrowDown']) {
+                console.log("Pedro: Retrocediendo");
+                pedroShip.speed = -5;
+            }
+            if (!pedroKeys['ArrowUp'] && !pedroKeys['ArrowDown']) pedroShip.speed = 0;
+            if (pedroKeys['Space'] && !pedroKeys['spacePressed'] && (currentTime - pedroLastShotTime) >= 500) {
+                console.log("Pedro: Disparando");
+                pedroBullets.push(pedroCreateBullet(pedroShip.x, pedroShip.y, pedroShip.angle));
+                pedroKeys['spacePressed'] = true;
+                pedroLastShotTime = currentTime;
+                pedroAssets.hitSound.load();
+                pedroAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+            }
+            if (!pedroKeys['Space']) pedroKeys['spacePressed'] = false;
+
+            pedroUpdateShip();
+            pedroDrawShip();
+
+            pedroBullets = pedroBullets.filter(b => 
+                b.x > 0 && b.x < canvas.width && 
+                b.y > 0 && b.y < canvas.height
+            );
+            pedroBullets.forEach(b => {
+                pedroUpdateBullet(b);
+                pedroDrawBullet(b);
+            });
+
+            pedroAsteroids.forEach((a, aIndex) => {
+                pedroUpdateAsteroid(a);
+                pedroDrawAsteroid(a);
+
+                pedroBullets.forEach((b, bIndex) => {
+                    if (Math.hypot(a.x - b.x, a.y - b.y) < a.width/2 + b.width/2) {
+                        pedroAssets.hitSound.load();
+                        pedroAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+                        createExplosion(a.x, a.y);
+                        pedroAsteroids.splice(aIndex, 1);
+                        pedroBullets.splice(bIndex, 1);
+                        pedroAsteroids.push(pedroCreateAsteroid());
+                        pedroScore += 1;
+                    }
+                });
+
+                if (Math.hypot(a.x - pedroShip.x, a.y - pedroShip.y) < a.width/2 + pedroShip.width/2) {
+                    pedroLives -= 1;
+                    pedroAssets.hitSound.load();
+                    pedroAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+                    createExplosion(pedroShip.x, pedroShip.y);
+                    pedroShip.x = canvas.width / 2;
+                    pedroShip.y = canvas.height / 2;
+                    pedroShip.speed = 0;
+                    pedroShip.angle = 0;
+                    pedroAsteroids.splice(aIndex, 1);
+                    pedroAsteroids.push(pedroCreateAsteroid());
+                    if (pedroLives <= 0) {
+                        pedroGameStarted = false;
+                        canvas.style.display = 'none';
+                        endScreen.style.display = 'flex';
+                        scoreText.textContent = `Has ghoto: ${pedroScore}`;
+                        return;
+                    }
+                }
+            });
+
+            pedroDrawLives();
+            pedroDrawHUD();
+
+            requestAnimationFrame(pedroGameLoop);
+        }
+
+        function startPedroGame() {
+            console.log("Iniciando juego de Pedro");
+            pedroGameStarted = true;
+            pedroShip = {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                angle: 0,
+                speed: 0,
+                width: 80,
+                height: 80,
+                image: pedroAssets.ship
+            };
+            pedroBullets = [];
+            pedroAsteroids = [];
+            for (let i = 0; i < pedroMaxAsteroids; i++) {
+                pedroAsteroids.push(pedroCreateAsteroid());
+            }
+            pedroLives = 3;
+            pedroScore = 0;
+            pedroTimeLeft = 60;
+            pedroLastTime = Date.now();
+            pedroKeys = {};
+            // Limpiar eventos anteriores
+            document.removeEventListener('keydown', pepeKeyDownHandler);
+            document.removeEventListener('keyup', pepeKeyUpHandler);
+            document.removeEventListener('keydown', hectorKeyDownHandler);
+            document.removeEventListener('keyup', hectorKeyUpHandler);
+            // Registrar eventos para Pedro
+            document.addEventListener('keydown', pedroKeyDownHandler);
+            document.addEventListener('keyup', pedroKeyUpHandler);
+            characterScreen.style.display = 'none';
+            canvas.style.display = 'block';
+            pepeAssets.backgroundMusic.pause();
+            hectorAssets.backgroundMusic.pause();
+            pedroAssets.backgroundMusic.load();
+            pedroAssets.backgroundMusic.play().catch(error => console.log("Error al reproducir música de Pedro:", error));
+            pedroGameLoop();
+        }
+
+        function pedroKeyDownHandler(e) { 
+            pedroKeys[e.code] = true; 
+            console.log("Tecla presionada en Pedro:", e.code);
+        }
+        function pedroKeyUpHandler(e) { 
+            pedroKeys[e.code] = false; 
+            console.log("Tecla soltada en Pedro:", e.code);
+        }
+
+        // --- Juego para Héctor ---
+        let hectorGameStarted = false;
+        let hectorLastShotTime = 0;
+        let hectorShip = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            angle: 0,
+            speed: 0,
+            width: 80,
+            height: 80,
+            image: hectorAssets.ship
+        };
+        let hectorBullets = [];
+        let hectorAsteroids = [];
+        const hectorMaxAsteroids = 5;
+        let hectorLives = 3;
+        let hectorScore = 0;
+        let hectorTimeLeft = 60;
+        let hectorLastTime = 0;
+        let hectorKeys = {};
+
+        function hectorDrawShip() {
+            ctx.save();
+            ctx.translate(hectorShip.x, hectorShip.y);
+            ctx.rotate(hectorShip.angle);
+            ctx.drawImage(hectorShip.image, -hectorShip.width/2, -hectorShip.height/2, hectorShip.width, hectorShip.height);
+            ctx.restore();
+        }
+
+        function hectorUpdateShip() {
+            hectorShip.x += Math.cos(hectorShip.angle) * hectorShip.speed;
+            hectorShip.y += Math.sin(hectorShip.angle) * hectorShip.speed;
+            if (hectorShip.x < 0) hectorShip.x = canvas.width;
+            if (hectorShip.x > canvas.width) hectorShip.x = 0;
+            if (hectorShip.y < 0) hectorShip.y = canvas.height;
+            if (hectorShip.y > canvas.height) hectorShip.y = 0;
+        }
+
+        function hectorCreateBullet(x, y, angle) {
+            return {
+                x: x,
+                y: y,
+                angle: angle,
+                speed: 10,
+                width: 60,
+                height: 60,
+                image: hectorAssets.bullet
+            };
+        }
+
+        function hectorDrawBullet(bullet) {
+            ctx.save();
+            ctx.translate(bullet.x, bullet.y);
+            ctx.rotate(bullet.angle);
+            ctx.drawImage(bullet.image, -bullet.width/2, -bullet.height/2, bullet.width, bullet.height);
+            ctx.restore();
+        }
+
+        function hectorUpdateBullet(bullet) {
+            bullet.x += Math.cos(bullet.angle) * bullet.speed;
+            bullet.y += Math.sin(bullet.angle) * bullet.speed;
+        }
+
+        function hectorCreateAsteroid() {
+            return {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                speedX: (Math.random() - 0.5) * 4,
+                speedY: (Math.random() - 0.5) * 4,
+                width: 50,
+                height: 50,
+                image: hectorAssets.asteroid
+            };
+        }
+
+        function hectorDrawAsteroid(asteroid) {
+            ctx.drawImage(asteroid.image, asteroid.x - asteroid.width/2, asteroid.y - asteroid.height/2, asteroid.width, asteroid.height);
+        }
+
+        function hectorUpdateAsteroid(asteroid) {
+            asteroid.x += asteroid.speedX;
+            asteroid.y += asteroid.speedY;
+            if (asteroid.x < 0) asteroid.x = canvas.width;
+            if (asteroid.x > canvas.width) asteroid.x = 0;
+            if (asteroid.y < 0) asteroid.y = canvas.height;
+            if (asteroid.y > canvas.height) asteroid.y = 0;
+        }
+
+        function hectorDrawLives() {
+            const lifeSize = 80;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(canvas.width - 300, canvas.height - lifeSize - 40, 280, 30);
+            ctx.fillStyle = 'yellow';
+            ctx.font = '16px "Press Start 2P"';
+            ctx.textAlign = 'right';
+            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            for (let i = 0; i < hectorLives; i++) {
+                ctx.drawImage(hectorAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
         }
 
-        const ship = new Ship();
-        let bullets = [];
-        let asteroids = [];
-        const maxAsteroids = 5;
-        let lives = 3;
-        let score = 0;
-        let timeLeft = 60;
-        let lastTime = Date.now();
-
-        let keys = {};
-        document.addEventListener('keydown', (e) => { keys[e.code] = true; });
-        document.addEventListener('keyup', (e) => { keys[e.code] = false; });
-
-        for (let i = 0; i < maxAsteroids; i++) {
-            asteroids.push(new Asteroid());
+        function hectorDrawHUD() {
+            ctx.font = '16px "Press Start 2P"';
+            ctx.textAlign = 'left';
+            const puntosText = `Puntos: ${hectorScore}`;
+            const puntosWidth = ctx.measureText(puntosText).width;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(10, 10, puntosWidth + 20, 30);
+            const tiempoText = `Tiempo ghestante: ${Math.ceil(hectorTimeLeft)}`;
+            const tiempoWidth = ctx.measureText(tiempoText).width;
+            ctx.fillStyle = 'black';
+            ctx.fillRect(10, 40, tiempoWidth + 20, 30);
+            ctx.fillStyle = 'yellow';
+            ctx.fillText(puntosText, 20, 30);
+            ctx.fillText(tiempoText, 20, 60);
         }
 
+        function hectorGameLoop() {
+            if (!hectorGameStarted) return;
+
+            const currentTime = Date.now();
+            const deltaTime = (currentTime - hectorLastTime) / 1000;
+            hectorLastTime = currentTime;
+
+            hectorTimeLeft -= deltaTime;
+            if (hectorTimeLeft <= 0) {
+                hectorGameStarted = false;
+                canvas.style.display = 'none';
+                endScreen.style.display = 'flex';
+                scoreText.textContent = `Has ghoto: ${hectorScore}`;
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = hectorGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (hectorKeys['ArrowLeft']) {
+                console.log("Héctor: Girando izquierda");
+                hectorShip.angle -= 0.1;
+            }
+            if (hectorKeys['ArrowRight']) {
+                console.log("Héctor: Girando derecha");
+                hectorShip.angle += 0.1;
+            }
+            if (hectorKeys['ArrowUp']) {
+                console.log("Héctor: Avanzando");
+                hectorShip.speed = 5;
+            }
+            if (hectorKeys['ArrowDown']) {
+                console.log("Héctor: Retrocediendo");
+                hectorShip.speed = -5;
+            }
+            if (!hectorKeys['ArrowUp'] && !hectorKeys['ArrowDown']) hectorShip.speed = 0;
+            if (hectorKeys['Space'] && !hectorKeys['spacePressed'] && (currentTime - hectorLastShotTime) >= 500) {
+                console.log("Héctor: Disparando");
+                hectorBullets.push(hectorCreateBullet(hectorShip.x, hectorShip.y, hectorShip.angle));
+                hectorKeys['spacePressed'] = true;
+                hectorLastShotTime = currentTime;
+                hectorAssets.hitSound.load();
+                hectorAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+            }
+            if (!hectorKeys['Space']) hectorKeys['spacePressed'] = false;
+
+            hectorUpdateShip();
+            hectorDrawShip();
+
+            hectorBullets = hectorBullets.filter(b => 
+                b.x > 0 && b.x < canvas.width && 
+                b.y > 0 && b.y < canvas.height
+            );
+            hectorBullets.forEach(b => {
+                hectorUpdateBullet(b);
+                hectorDrawBullet(b);
+            });
+
+            hectorAsteroids.forEach((a, aIndex) => {
+                hectorUpdateAsteroid(a);
+                hectorDrawAsteroid(a);
+
+                hectorBullets.forEach((b, bIndex) => {
+                    if (Math.hypot(a.x - b.x, a.y - b.y) < a.width/2 + b.width/2) {
+                        hectorAssets.hitSound.load();
+                        hectorAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+                        createExplosion(a.x, a.y);
+                        hectorAsteroids.splice(aIndex, 1);
+                        hectorBullets.splice(bIndex, 1);
+                        hectorAsteroids.push(hectorCreateAsteroid());
+                        hectorScore += 1;
+                    }
+                });
+
+                if (Math.hypot(a.x - hectorShip.x, a.y - hectorShip.y) < a.width/2 + hectorShip.width/2) {
+                    hectorLives -= 1;
+                    hectorAssets.hitSound.load();
+                    hectorAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+                    createExplosion(hectorShip.x, hectorShip.y);
+                    hectorShip.x = canvas.width / 2;
+                    hectorShip.y = canvas.height / 2;
+                    hectorShip.speed = 0;
+                    hectorShip.angle = 0;
+                    hectorAsteroids.splice(aIndex, 1);
+                    hectorAsteroids.push(hectorCreateAsteroid());
+                    if (hectorLives <= 0) {
+                        hectorGameStarted = false;
+                        canvas.style.display = 'none';
+                        endScreen.style.display = 'flex';
+                        scoreText.textContent = `Has ghoto: ${hectorScore}`;
+                        return;
+                    }
+                }
+            });
+
+            hectorDrawLives();
+            hectorDrawHUD();
+
+            requestAnimationFrame(hectorGameLoop);
+        }
+
+        function startHectorGame() {
+            console.log("Iniciando juego de Héctor");
+            hectorGameStarted = true;
+            hectorShip = {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                angle: 0,
+                speed: 0,
+                width: 80,
+                height: 80,
+                image: hectorAssets.ship
+            };
+            hectorBullets = [];
+            hectorAsteroids = [];
+            for (let i = 0; i < hectorMaxAsteroids; i++) {
+                hectorAsteroids.push(hectorCreateAsteroid());
+            }
+            hectorLives = 3;
+            hectorScore = 0;
+            hectorTimeLeft = 60;
+            hectorLastTime = Date.now();
+            hectorKeys = {};
+            // Limpiar eventos anteriores
+            document.removeEventListener('keydown', pepeKeyDownHandler);
+            document.removeEventListener('keyup', pepeKeyUpHandler);
+            document.removeEventListener('keydown', pedroKeyDownHandler);
+            document.removeEventListener('keyup', pedroKeyUpHandler);
+            // Registrar eventos para Héctor
+            document.addEventListener('keydown', hectorKeyDownHandler);
+            document.addEventListener('keyup', hectorKeyUpHandler);
+            characterScreen.style.display = 'none';
+            canvas.style.display = 'block';
+            pepeAssets.backgroundMusic.pause();
+            pedroAssets.backgroundMusic.pause();
+            hectorAssets.backgroundMusic.load();
+            hectorAssets.backgroundMusic.play().catch(error => console.log("Error al reproducir música de Héctor:", error));
+            hectorGameLoop();
+        }
+
+        function hectorKeyDownHandler(e) { 
+            hectorKeys[e.code] = true; 
+            console.log("Tecla presionada en Héctor:", e.code);
+        }
+        function hectorKeyUpHandler(e) { 
+            hectorKeys[e.code] = false; 
+            console.log("Tecla soltada en Héctor:", e.code);
+        }
+
+        // Funciones comunes
         function createExplosion(x, y) {
             for (let i = 0; i < 20; i++) {
                 ctx.fillStyle = `hsl(${Math.random() * 360}, 100%, 50%)`;
@@ -262,230 +1050,61 @@
             }
         }
 
-        function drawLives() {
-            const lifeSize = 80;
-            ctx.fillStyle = 'black';
-            ctx.fillRect(canvas.width - 300, canvas.height - lifeSize - 40, 280, 30);
-            ctx.fillStyle = 'yellow';
-            ctx.font = '16px "Press Start 2P"';
-            ctx.textAlign = 'right';
-            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
-
-            for (let i = 0; i < lives; i++) {
-                ctx.drawImage(
-                    croissantImg,
-                    canvas.width - (lifeSize + 10) * (i + 1),
-                    canvas.height - lifeSize - 10,
-                    lifeSize,
-                    lifeSize
-                );
-            }
-        }
-
-        function drawHUD() {
-            ctx.font = '16px "Press Start 2P"';
-            ctx.textAlign = 'left';
-
-            const puntosText = `Puntos: ${score}`;
-            const puntosWidth = ctx.measureText(puntosText).width;
-            ctx.fillStyle = 'black';
-            ctx.fillRect(10, 10, puntosWidth + 20, 30);
-
-            const tiempoText = `Tiempo ghestante: ${Math.ceil(timeLeft)}`;
-            const tiempoWidth = ctx.measureText(tiempoText).width;
-            ctx.fillStyle = 'black';
-            ctx.fillRect(10, 40, tiempoWidth + 20, 30);
-
-            ctx.fillStyle = 'yellow';
-            ctx.fillText(puntosText, 20, 30);
-            ctx.fillText(tiempoText, 20, 60);
-        }
-
-        function saveScore(name, score) {
-            if (!db) {
-                console.warn("Firebase no disponible, puntuación no guardada");
-                return;
-            }
-            const newScore = { name, score, timestamp: Date.now() };
-            db.ref('scores').push(newScore).then(() => {
-                console.log("Puntuación guardada:", newScore);
-            }).catch(error => {
-                console.error("Error al guardar puntuación:", error);
-            });
-        }
-
-        function loadAndShowRanking() {
-            if (!db) {
-                console.warn("Firebase no disponible, no se puede cargar el ranking");
-                ranking.innerHTML = '<h2>Ranking</h2><p>No disponible</p>';
-                return;
-            }
-            db.ref('scores').orderByChild('score').limitToLast(5).once('value', (snapshot) => {
-                const scores = [];
-                snapshot.forEach(child => {
-                    scores.push(child.val());
-                });
-                scores.sort((a, b) => b.score - a.score);
-                showRanking(scores);
-                retryButton.style.display = 'block'; // Mostrar botón tras cargar ranking
-            }).catch(error => {
-                console.error("Error al cargar ranking:", error);
-                ranking.innerHTML = '<h2>Ranking</h2><p>Error al cargar</p>';
-                retryButton.style.display = 'block'; // Mostrar botón incluso si hay error
-            });
-        }
-
-        function showRanking(scores) {
-            ranking.innerHTML = '<h2>Ranking</h2>' + scores.map((s, i) => 
-                `<p>${i + 1}. ${s.name}: ${s.score}</p>`).join('');
-        }
-
-        function showGameOver() {
-            gameStarted = false;
-            canvas.style.display = 'none';
-            endScreen.style.display = 'flex';
-            scoreText.textContent = `Has ghoto: ${score}`;
-        }
-
-        function showNameScreen() {
-            endScreen.style.display = 'none';
-            nameScreen.style.display = 'flex';
-            nameInput.value = '';
-            ranking.innerHTML = '';
-            retryButton.style.display = 'none'; // Ocultar botón hasta que se cargue el ranking
-            loadAndShowRanking();
-        }
-
-        function gameLoop() {
-            if (!gameStarted) return;
-
-            const currentTime = Date.now();
-            const deltaTime = (currentTime - lastTime) / 1000;
-            lastTime = currentTime;
-
-            timeLeft -= deltaTime;
-            if (timeLeft <= 0) {
-                showGameOver();
-                return;
-            }
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (keys['ArrowLeft']) ship.angle -= 0.1;
-            if (keys['ArrowRight']) ship.angle += 0.1;
-            if (keys['ArrowUp']) ship.speed = 5;
-            if (keys['ArrowDown']) ship.speed = -5;
-            if (!keys['ArrowUp'] && !keys['ArrowDown']) ship.speed = 0;
-            if (keys['Space'] && !keys['spacePressed'] && (currentTime - lastShotTime) >= 500) {
-                bullets.push(new Bullet(ship.x, ship.y, ship.angle));
-                keys['spacePressed'] = true;
-                lastShotTime = currentTime;
-            }
-            if (!keys['Space']) keys['spacePressed'] = false;
-
-            ship.update();
-            ship.draw();
-
-            bullets = bullets.filter(b => 
-                b.x > 0 && b.x < canvas.width && 
-                b.y > 0 && b.y < canvas.height
-            );
-            bullets.forEach(b => {
-                b.update();
-                b.draw();
-            });
-
-            asteroids.forEach((a, aIndex) => {
-                a.update();
-                a.draw();
-
-                bullets.forEach((b, bIndex) => {
-                    if (Math.hypot(a.x - b.x, a.y - b.y) < a.width/2 + b.width/2) {
-                        hitSound.play();
-                        createExplosion(a.x, a.y);
-                        asteroids.splice(aIndex, 1);
-                        bullets.splice(bIndex, 1);
-                        asteroids.push(new Asteroid());
-                        score += 1;
-                    }
-                });
-
-                if (Math.hypot(a.x - ship.x, a.y - ship.y) < a.width/2 + ship.width/2) {
-                    lives -= 1;
-                    hitSound.play();
-                    createExplosion(ship.x, ship.y);
-                    ship.x = canvas.width / 2;
-                    ship.y = canvas.height / 2;
-                    ship.speed = 0;
-                    ship.angle = 0;
-                    asteroids.splice(aIndex, 1);
-                    asteroids.push(new Asteroid());
-                    if (lives <= 0) {
-                        showGameOver();
-                        return;
-                    }
-                }
-            });
-
-            drawLives();
-            drawHUD();
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        function startGame() {
-            console.log("Botón 'Comenzag' clicado, iniciando juego...");
-            gameStarted = true;
+        function showCharacterScreen() {
             startScreen.style.display = 'none';
-            canvas.style.display = 'block';
-            backgroundMusic.play().catch(error => {
-                console.log("Error al reproducir música:", error);
-            });
-            lastTime = Date.now();
-            gameLoop();
+            characterScreen.style.display = 'flex';
         }
 
         // Registro de eventos
         console.log("Registrando eventos...");
-        startButton.addEventListener('click', () => {
-            console.log("Evento click disparado en startButton");
-            startGame();
+        startButton.addEventListener('click', showCharacterScreen);
+        characterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const character = button.getAttribute('data-character');
+                console.log("Personaje seleccionado:", character);
+                if (character === 'pepe') startPepeGame();
+                else if (character === 'pedro') startPedroGame();
+                else if (character === 'hector') startHectorGame();
+            });
         });
         rankingButton.addEventListener('click', () => {
-            console.log("Evento click disparado en rankingButton");
-            showNameScreen();
+            endScreen.style.display = 'none';
+            nameScreen.style.display = 'flex';
+            nameInput.value = '';
+            ranking.innerHTML = '';
+            retryButton.style.display = 'none';
+            loadAndShowRanking();
         });
         submitScore.addEventListener('click', () => {
-            console.log("Evento click disparado en submitScore");
             const name = nameInput.value.trim();
             if (name) {
+                const score = pepeGameStarted ? pepeScore : pedroGameStarted ? pedroScore : hectorScore;
                 saveScore(name, score);
-                setTimeout(() => {
-                    loadAndShowRanking();
-                }, 500);
+                setTimeout(loadAndShowRanking, 500);
             }
         });
         retryButton.addEventListener('click', () => {
-            console.log("Evento click disparado en retryButton");
             nameScreen.style.display = 'none';
             startScreen.style.display = 'flex';
-            lives = 3;
-            score = 0;
-            timeLeft = 60;
-            ship.x = canvas.width / 2;
-            ship.y = canvas.height / 2;
-            bullets = [];
-            asteroids = [];
-            for (let i = 0; i < maxAsteroids; i++) {
-                asteroids.push(new Asteroid());
-            }
+            pepeGameStarted = false;
+            pedroGameStarted = false;
+            hectorGameStarted = false;
+            pepeAssets.backgroundMusic.pause();
+            pedroAssets.backgroundMusic.pause();
+            hectorAssets.backgroundMusic.pause();
         });
 
         // Carga de imágenes
         Promise.all([
-            new Promise(resolve => { pepeImg.onload = resolve; pepeImg.onerror = () => console.error("Error cargando pepe.png"); }),
-            new Promise(resolve => { croissantImg.onload = resolve; croissantImg.onerror = () => console.error("Error cargando croissant.png"); }),
-            new Promise(resolve => { ukImg.onload = resolve; ukImg.onerror = () => console.error("Error cargando uk.jpg"); })
+            new Promise(resolve => { pepeAssets.ship.onload = resolve; pepeAssets.ship.onerror = () => console.error("Error cargando pepe.png"); }),
+            new Promise(resolve => { pepeAssets.bullet.onload = resolve; pepeAssets.bullet.onerror = () => console.error("Error cargando croissant_pepe.png"); }),
+            new Promise(resolve => { pepeAssets.asteroid.onload = resolve; pepeAssets.asteroid.onerror = () => console.error("Error cargando uk_pepe.jpg"); }),
+            new Promise(resolve => { pedroAssets.ship.onload = resolve; pedroAssets.ship.onerror = () => console.error("Error cargando pedro.png"); }),
+            new Promise(resolve => { pedroAssets.bullet.onload = resolve; pedroAssets.bullet.onerror = () => console.error("Error cargando croissant_pedro.png"); }),
+            new Promise(resolve => { pedroAssets.asteroid.onload = resolve; pedroAssets.asteroid.onerror = () => console.error("Error cargando uk_pedro.png"); }),
+            new Promise(resolve => { hectorAssets.ship.onload = resolve; hectorAssets.ship.onerror = () => console.error("Error cargando hector.png"); }),
+            new Promise(resolve => { hectorAssets.bullet.onload = resolve; hectorAssets.bullet.onerror = () => console.error("Error cargando croissant_hector.png"); }),
+            new Promise(resolve => { hectorAssets.asteroid.onload = resolve; hectorAssets.asteroid.onerror = () => console.error("Error cargando uk_hector.png"); })
         ]).then(() => {
             console.log("Imágenes cargadas, listo para iniciar.");
         }).catch(error => {
@@ -495,8 +1114,27 @@
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            ship.x = canvas.width / 2;
-            ship.y = canvas.height / 2;
+            if (pepeGameStarted) {
+                pepeShip.x = canvas.width / 2;
+                pepeShip.y = canvas.height / 2;
+            } else if (pedroGameStarted) {
+                pedroShip.x = canvas.width / 2;
+                pedroShip.y = canvas.height / 2;
+            } else if (hectorGameStarted) {
+                hectorShip.x = canvas.width / 2;
+                hectorShip.y = canvas.height / 2;
+            }
+            pepeGradient.addColorStop(0, 'blue');
+            pepeGradient.addColorStop(0.5, 'white');
+            pepeGradient.addColorStop(1, 'red');
+            pedroGradient.addColorStop(0, '#d3d3d3');
+            pedroGradient.addColorStop(0.5, '#e0e0e0');
+            pedroGradient.addColorStop(1, '#c0c0c0');
+            hectorGradient.addColorStop(0, 'yellow');
+            hectorGradient.addColorStop(0.25, 'red');
+            hectorGradient.addColorStop(0.5, 'yellow');
+            hectorGradient.addColorStop(0.75, 'red');
+            hectorGradient.addColorStop(1, 'yellow');
         });
 
         console.log("Script cargado completamente");
