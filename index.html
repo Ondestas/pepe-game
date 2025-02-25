@@ -63,6 +63,12 @@
             margin-top: 20px;
             text-align: center;
         }
+        #tempRanking {
+            margin-top: 20px;
+            color: yellow;
+            font-size: 16px;
+            font-family: 'Press Start 2P', cursive;
+        }
         .characterOption {
             display: flex;
             flex-direction: column;
@@ -113,6 +119,7 @@
         <input type="text" id="nameInput" placeholder="Tu nombre" maxlength="10">
         <button id="submitScore">Enviar</button>
         <div id="ranking"></div>
+        <div id="tempRanking"></div>
         <button id="retryButton" style="display: none;">Inténtalo otgha vessss</button>
     </div>
     <audio id="backgroundMusicPepe" loop>
@@ -174,6 +181,7 @@
         const nameInput = document.getElementById('nameInput');
         const scoreText = document.getElementById('scoreText');
         const ranking = document.getElementById('ranking');
+        const tempRanking = document.getElementById('tempRanking'); // Nuevo elemento para puntuación temporal
         const rankingButton = document.getElementById('rankingButton');
         const retryButton = document.getElementById('retryButton');
         const characterButtons = document.querySelectorAll('.characterButton');
@@ -472,6 +480,7 @@
             pepeTimeLeft = 60;
             pepeLastTime = Date.now();
             pepeKeys = {};
+            scoreSubmitted = false;
             document.removeEventListener('keydown', pedroKeyDownHandler);
             document.removeEventListener('keyup', pedroKeyUpHandler);
             document.removeEventListener('keydown', hectorKeyDownHandler);
@@ -591,7 +600,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Jiras restantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
             for (let i = 0; i < pedroLives; i++) {
                 ctx.drawImage(pedroAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -604,7 +613,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Lo que te queda chaval: ${Math.ceil(pedroTimeLeft)}`;
+            const tiempoText = `Tiempo ghestante: ${Math.ceil(pedroTimeLeft)}`;
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
@@ -735,6 +744,7 @@
             pedroTimeLeft = 60;
             pedroLastTime = Date.now();
             pedroKeys = {};
+            scoreSubmitted = false;
             document.removeEventListener('keydown', pepeKeyDownHandler);
             document.removeEventListener('keyup', pepeKeyUpHandler);
             document.removeEventListener('keydown', hectorKeyDownHandler);
@@ -854,7 +864,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Ayahuascas restantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
             for (let i = 0; i < hectorLives; i++) {
                 ctx.drawImage(hectorAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -867,7 +877,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Queda poco co: ${Math.ceil(hectorTimeLeft)}`;
+            const tiempoText = `Tiempo ghestante: ${Math.ceil(hectorTimeLeft)}`;
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
@@ -998,6 +1008,7 @@
             hectorTimeLeft = 60;
             hectorLastTime = Date.now();
             hectorKeys = {};
+            scoreSubmitted = false;
             document.removeEventListener('keydown', pepeKeyDownHandler);
             document.removeEventListener('keyup', pepeKeyUpHandler);
             document.removeEventListener('keydown', pedroKeyDownHandler);
@@ -1051,21 +1062,39 @@
             });
         }
 
-        function loadAndShowRanking() {
+        function loadAndShowRanking(userName, userScore) {
             if (!db) {
                 console.warn("Firebase no disponible, no se puede cargar el ranking");
                 ranking.innerHTML = '<h2>Ranking</h2><p>No disponible</p>';
                 retryButton.style.display = 'block';
                 return;
             }
-            db.ref('scores').orderByChild('score').limitToLast(8).once('value', (snapshot) => {
+            db.ref('scores').orderByChild('score').once('value', (snapshot) => {
                 const scores = [];
                 snapshot.forEach(child => {
                     scores.push(child.val());
                 });
                 scores.sort((a, b) => b.score - a.score);
-                ranking.innerHTML = '<h2>Ranking</h2>' + scores.map((s, i) => 
+
+                // Mostrar solo los 8 mejores en el ranking permanente
+                const top8 = scores.slice(0, 8);
+                ranking.innerHTML = '<h2>Ranking</h2>' + top8.map((s, i) => 
                     `<p>${i + 1}. ${s.name}: ${s.score}</p>`).join('');
+                
+                // Calcular posición del usuario y mostrarla temporalmente si no está en el top 8
+                const allScores = scores.slice(); // Copia de todas las puntuaciones
+                const userEntry = { name: userName, score: userScore };
+                allScores.push(userEntry);
+                allScores.sort((a, b) => b.score - a.score);
+                const userPosition = allScores.findIndex(s => s.name === userName && s.score === userScore) + 1;
+
+                if (userPosition > 8) {
+                    tempRanking.innerHTML = `<p>${userPosition}. ${userName}: ${userScore}</p>`;
+                    setTimeout(() => {
+                        tempRanking.innerHTML = ''; // Borrar después de 5 segundos
+                    }, 5000);
+                }
+
                 retryButton.style.display = 'block';
             }).catch(error => {
                 console.error("Error al cargar ranking:", error);
@@ -1079,7 +1108,7 @@
             characterScreen.style.display = 'flex';
         }
 
-        // Control para evitar múltiples envíos
+        // Control para evitar múltiples envíos en la misma partida
         let scoreSubmitted = false;
 
         // Registro de eventos
@@ -1089,7 +1118,6 @@
             button.addEventListener('click', () => {
                 const character = button.getAttribute('data-character');
                 console.log("Personaje seleccionado:", character);
-                scoreSubmitted = false; // Reiniciar al empezar un nuevo juego
                 if (character === 'pepe') startPepeGame();
                 else if (character === 'pedro') startPedroGame();
                 else if (character === 'hector') startHectorGame();
@@ -1100,30 +1128,53 @@
             nameScreen.style.display = 'flex';
             nameInput.value = '';
             ranking.innerHTML = '';
+            tempRanking.innerHTML = '';
             retryButton.style.display = 'none';
-            nameInput.disabled = false; // Habilitar entrada inicialmente
-            submitScore.disabled = false; // Habilitar botón inicialmente
-            loadAndShowRanking();
+            nameInput.disabled = false;
+            submitScore.disabled = false;
+            nameInput.style.display = 'block';
+            submitScore.style.display = 'block';
         });
         submitScore.addEventListener('click', () => {
             console.log("Botón Enviar clicado");
             if (scoreSubmitted) {
-                console.log("Puntuación ya enviada, no se permite más envíos");
+                console.log("Puntuación ya enviada en esta partida, no se permite más envíos");
                 return;
             }
             const name = nameInput.value.trim();
             if (name) {
                 const score = pepeGameStarted ? pepeScore : pedroGameStarted ? pedroScore : hectorScore;
-                console.log("Enviando puntuación:", { name, score });
-                saveScore(name, score);
-                scoreSubmitted = true;
-                nameInput.disabled = true; // Deshabilitar entrada
-                submitScore.disabled = true; // Deshabilitar botón
-                nameInput.style.display = 'none'; // Ocultar campo de entrada
-                submitScore.style.display = 'none'; // Ocultar botón "Enviar"
-                setTimeout(() => {
-                    loadAndShowRanking();
-                }, 500);
+                console.log("Evaluando puntuación:", { name, score });
+
+                // Obtener el top 8 para decidir si guardar
+                db.ref('scores').orderByChild('score').limitToLast(8).once('value', (snapshot) => {
+                    const scores = [];
+                    snapshot.forEach(child => {
+                        scores.push(child.val());
+                    });
+                    scores.sort((a, b) => b.score - a.score);
+                    const minTop8Score = scores.length < 8 ? 0 : scores[scores.length - 1].score;
+
+                    // Guardar solo si está en el top 8
+                    if (score > minTop8Score || scores.length < 8) {
+                        saveScore(name, score);
+                    } else {
+                        console.log("Puntuación no entra en el top 8, no se guarda permanentemente");
+                    }
+
+                    scoreSubmitted = true;
+                    nameInput.disabled = true;
+                    submitScore.disabled = true;
+                    nameInput.style.display = 'none';
+                    submitScore.style.display = 'none';
+                    setTimeout(() => {
+                        loadAndShowRanking(name, score);
+                    }, 500);
+                }).catch(error => {
+                    console.error("Error al verificar top 8:", error);
+                    ranking.innerHTML = '<h2>Ranking</h2><p>Error al cargar</p>';
+                    retryButton.style.display = 'block';
+                });
             } else {
                 console.log("Nombre vacío, no se envía");
             }
@@ -1137,6 +1188,7 @@
             pepeAssets.backgroundMusic.pause();
             pedroAssets.backgroundMusic.pause();
             hectorAssets.backgroundMusic.pause();
+            scoreSubmitted = false;
         });
 
         // Carga de imágenes
