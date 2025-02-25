@@ -181,7 +181,7 @@
         const nameInput = document.getElementById('nameInput');
         const scoreText = document.getElementById('scoreText');
         const ranking = document.getElementById('ranking');
-        const tempRanking = document.getElementById('tempRanking'); // Nuevo elemento para puntuación temporal
+        const tempRanking = document.getElementById('tempRanking');
         const rankingButton = document.getElementById('rankingButton');
         const retryButton = document.getElementById('retryButton');
         const characterButtons = document.querySelectorAll('.characterButton');
@@ -447,6 +447,7 @@
                         canvas.style.display = 'none';
                         endScreen.style.display = 'flex';
                         scoreText.textContent = `Has ghoto: ${pepeScore}`;
+                        console.log("Puntuación final de Pepe:", pepeScore); // Depuración
                         return;
                     }
                 }
@@ -635,6 +636,7 @@
                 canvas.style.display = 'none';
                 endScreen.style.display = 'flex';
                 scoreText.textContent = `Has ghoto: ${pedroScore}`;
+                console.log("Puntuación final de Pedro:", pedroScore); // Depuración
                 return;
             }
 
@@ -711,6 +713,7 @@
                         canvas.style.display = 'none';
                         endScreen.style.display = 'flex';
                         scoreText.textContent = `Has ghoto: ${pedroScore}`;
+                        console.log("Puntuación final de Pedro:", pedroScore); // Depuración
                         return;
                     }
                 }
@@ -899,6 +902,7 @@
                 canvas.style.display = 'none';
                 endScreen.style.display = 'flex';
                 scoreText.textContent = `Has ghoto: ${hectorScore}`;
+                console.log("Puntuación final de Héctor:", hectorScore); // Depuración
                 return;
             }
 
@@ -975,6 +979,7 @@
                         canvas.style.display = 'none';
                         endScreen.style.display = 'flex';
                         scoreText.textContent = `Has ghoto: ${hectorScore}`;
+                        console.log("Puntuación final de Héctor:", hectorScore); // Depuración
                         return;
                     }
                 }
@@ -1082,7 +1087,7 @@
                     `<p>${i + 1}. ${s.name}: ${s.score}</p>`).join('');
                 
                 // Calcular posición del usuario y mostrarla temporalmente si no está en el top 8
-                const allScores = scores.slice(); // Copia de todas las puntuaciones
+                const allScores = scores.slice();
                 const userEntry = { name: userName, score: userScore };
                 allScores.push(userEntry);
                 allScores.sort((a, b) => b.score - a.score);
@@ -1091,7 +1096,7 @@
                 if (userPosition > 8) {
                     tempRanking.innerHTML = `<p>${userPosition}. ${userName}: ${userScore}</p>`;
                     setTimeout(() => {
-                        tempRanking.innerHTML = ''; // Borrar después de 5 segundos
+                        tempRanking.innerHTML = '';
                     }, 5000);
                 }
 
@@ -1134,6 +1139,7 @@
             submitScore.disabled = false;
             nameInput.style.display = 'block';
             submitScore.style.display = 'block';
+            console.log("Puntuación actual antes de ranking - Pepe:", pepeScore, "Pedro:", pedroScore, "Héctor:", hectorScore); // Depuración
         });
         submitScore.addEventListener('click', () => {
             console.log("Botón Enviar clicado");
@@ -1143,10 +1149,9 @@
             }
             const name = nameInput.value.trim();
             if (name) {
-                const score = pepeGameStarted ? pepeScore : pedroGameStarted ? pedroScore : hectorScore;
-                console.log("Evaluando puntuación:", { name, score });
+                const score = pepeGameStarted ? pepeScore : pedroGameStarted ? pedroScore : hectorGameStarted ? hectorScore : 0;
+                console.log("Puntuación enviada al ranking:", score); // Depuración
 
-                // Obtener el top 8 para decidir si guardar
                 db.ref('scores').orderByChild('score').limitToLast(8).once('value', (snapshot) => {
                     const scores = [];
                     snapshot.forEach(child => {
@@ -1155,7 +1160,6 @@
                     scores.sort((a, b) => b.score - a.score);
                     const minTop8Score = scores.length < 8 ? 0 : scores[scores.length - 1].score;
 
-                    // Guardar solo si está en el top 8
                     if (score > minTop8Score || scores.length < 8) {
                         saveScore(name, score);
                     } else {
