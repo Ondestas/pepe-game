@@ -202,7 +202,7 @@
         };
         pedroAssets.ship.src = 'pedro.png';
         pedroAssets.bullet.src = 'croissant_pedro.png';
-        pedroAssets.asteroid.src = 'uk_pedro.png';
+        pedroAssets.asteroid.src = 'uk_pedro.png'; // Cambiado a .png
 
         const hectorAssets = {
             ship: new Image(),
@@ -213,7 +213,7 @@
         };
         hectorAssets.ship.src = 'hector.png';
         hectorAssets.bullet.src = 'croissant_hector.png';
-        hectorAssets.asteroid.src = 'uk_hector.png';
+        hectorAssets.asteroid.src = 'uk_hector.png'; // Cambiado a .png
 
         // Degradados por personaje
         const pepeGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
@@ -392,8 +392,7 @@
                 pepeBullets.push(pepeCreateBullet(pepeShip.x, pepeShip.y, pepeShip.angle));
                 pepeKeys['spacePressed'] = true;
                 pepeLastShotTime = currentTime;
-                pepeAssets.hitSound.load();
-                pepeAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+                // Sonido movido al impacto
             }
             if (!pepeKeys['Space']) pepeKeys['spacePressed'] = false;
 
@@ -474,12 +473,10 @@
             pepeTimeLeft = 60;
             pepeLastTime = Date.now();
             pepeKeys = {};
-            // Limpiar eventos anteriores
             document.removeEventListener('keydown', pedroKeyDownHandler);
             document.removeEventListener('keyup', pedroKeyUpHandler);
             document.removeEventListener('keydown', hectorKeyDownHandler);
             document.removeEventListener('keyup', hectorKeyUpHandler);
-            // Registrar eventos para Pepe
             document.addEventListener('keydown', pepeKeyDownHandler);
             document.addEventListener('keyup', pepeKeyUpHandler);
             characterScreen.style.display = 'none';
@@ -659,8 +656,7 @@
                 pedroBullets.push(pedroCreateBullet(pedroShip.x, pedroShip.y, pedroShip.angle));
                 pedroKeys['spacePressed'] = true;
                 pedroLastShotTime = currentTime;
-                pedroAssets.hitSound.load();
-                pedroAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+                // Sonido movido al impacto
             }
             if (!pedroKeys['Space']) pedroKeys['spacePressed'] = false;
 
@@ -741,12 +737,10 @@
             pedroTimeLeft = 60;
             pedroLastTime = Date.now();
             pedroKeys = {};
-            // Limpiar eventos anteriores
             document.removeEventListener('keydown', pepeKeyDownHandler);
             document.removeEventListener('keyup', pepeKeyUpHandler);
             document.removeEventListener('keydown', hectorKeyDownHandler);
             document.removeEventListener('keyup', hectorKeyUpHandler);
-            // Registrar eventos para Pedro
             document.addEventListener('keydown', pedroKeyDownHandler);
             document.addEventListener('keyup', pedroKeyUpHandler);
             characterScreen.style.display = 'none';
@@ -926,8 +920,7 @@
                 hectorBullets.push(hectorCreateBullet(hectorShip.x, hectorShip.y, hectorShip.angle));
                 hectorKeys['spacePressed'] = true;
                 hectorLastShotTime = currentTime;
-                hectorAssets.hitSound.load();
-                hectorAssets.hitSound.play().catch(error => console.log("Error al reproducir sonido de impacto:", error));
+                // Sonido movido al impacto
             }
             if (!hectorKeys['Space']) hectorKeys['spacePressed'] = false;
 
@@ -1008,12 +1001,10 @@
             hectorTimeLeft = 60;
             hectorLastTime = Date.now();
             hectorKeys = {};
-            // Limpiar eventos anteriores
             document.removeEventListener('keydown', pepeKeyDownHandler);
             document.removeEventListener('keyup', pepeKeyUpHandler);
             document.removeEventListener('keydown', pedroKeyDownHandler);
             document.removeEventListener('keyup', pedroKeyUpHandler);
-            // Registrar eventos para Héctor
             document.addEventListener('keydown', hectorKeyDownHandler);
             document.addEventListener('keyup', hectorKeyUpHandler);
             characterScreen.style.display = 'none';
@@ -1050,6 +1041,42 @@
             }
         }
 
+        function saveScore(name, score) {
+            if (!db) {
+                console.warn("Firebase no disponible, puntuación no guardada");
+                return;
+            }
+            const newScore = { name, score, timestamp: Date.now() };
+            db.ref('scores').push(newScore).then(() => {
+                console.log("Puntuación guardada:", newScore);
+            }).catch(error => {
+                console.error("Error al guardar puntuación:", error);
+            });
+        }
+
+        function loadAndShowRanking() {
+            if (!db) {
+                console.warn("Firebase no disponible, no se puede cargar el ranking");
+                ranking.innerHTML = '<h2>Ranking</h2><p>No disponible</p>';
+                retryButton.style.display = 'block';
+                return;
+            }
+            db.ref('scores').orderByChild('score').limitToLast(5).once('value', (snapshot) => {
+                const scores = [];
+                snapshot.forEach(child => {
+                    scores.push(child.val());
+                });
+                scores.sort((a, b) => b.score - a.score);
+                ranking.innerHTML = '<h2>Ranking</h2>' + scores.map((s, i) => 
+                    `<p>${i + 1}. ${s.name}: ${s.score}</p>`).join('');
+                retryButton.style.display = 'block';
+            }).catch(error => {
+                console.error("Error al cargar ranking:", error);
+                ranking.innerHTML = '<h2>Ranking</h2><p>Error al cargar</p>';
+                retryButton.style.display = 'block';
+            });
+        }
+
         function showCharacterScreen() {
             startScreen.style.display = 'none';
             characterScreen.style.display = 'flex';
@@ -1076,11 +1103,17 @@
             loadAndShowRanking();
         });
         submitScore.addEventListener('click', () => {
+            console.log("Botón Enviar clicado");
             const name = nameInput.value.trim();
             if (name) {
                 const score = pepeGameStarted ? pepeScore : pedroGameStarted ? pedroScore : hectorScore;
+                console.log("Enviando puntuación:", { name, score });
                 saveScore(name, score);
-                setTimeout(loadAndShowRanking, 500);
+                setTimeout(() => {
+                    loadAndShowRanking();
+                }, 500);
+            } else {
+                console.log("Nombre vacío, no se envía");
             }
         });
         retryButton.addEventListener('click', () => {
