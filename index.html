@@ -96,7 +96,27 @@
         <source src="tos.mp3" type="audio/mp3">
     </audio>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+
     <script>
+        // Configuración de Firebase con tus credenciales
+        const firebaseConfig = {
+            apiKey: "AIzaSyBKgK9OwzGD947pTuXSkf4bEJ70HqGL0Ck",
+            authDomain: "pepegame-763c5.firebaseapp.com",
+            databaseURL: "https://pepegame-763c5-default-rtdb.firebaseio.com",
+            projectId: "pepegame-763c5",
+            storageBucket: "pepegame-763c5.firebasestorage.app",
+            messagingSenderId: "1084351604949",
+            appId: "1:1084351604949:web:cd425714b9b2b825295a5c",
+            measurementId: "G-3CFG6X9K0E"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const backgroundMusic = document.getElementById('backgroundMusic');
@@ -125,7 +145,7 @@
         backgroundMusic.volume = 0.5;
 
         let gameStarted = false;
-        let lastShotTime = 0; // Para controlar el retraso de disparo
+        let lastShotTime = 0;
 
         class Ship {
             constructor() {
@@ -275,12 +295,19 @@
         }
 
         function saveScore(name, score) {
-            let scores = JSON.parse(localStorage.getItem('pepegameScores') || '[]');
-            scores.push({ name, score });
-            scores.sort((a, b) => b.score - a.score);
-            scores = scores.slice(0, 5);
-            localStorage.setItem('pepegameScores', JSON.stringify(scores));
-            return scores;
+            const newScore = { name, score, timestamp: Date.now() };
+            db.ref('scores').push(newScore);
+        }
+
+        function loadAndShowRanking() {
+            db.ref('scores').orderByChild('score').limitToLast(5).once('value', (snapshot) => {
+                const scores = [];
+                snapshot.forEach(child => {
+                    scores.push(child.val());
+                });
+                scores.sort((a, b) => b.score - a.score); // Ordenar de mayor a menor
+                showRanking(scores);
+            });
         }
 
         function showRanking(scores) {
@@ -300,6 +327,7 @@
             nameScreen.style.display = 'flex';
             nameInput.value = '';
             ranking.innerHTML = '';
+            loadAndShowRanking();
         }
 
         function gameLoop() {
@@ -395,22 +423,24 @@
         submitScore.addEventListener('click', () => {
             const name = nameInput.value.trim();
             if (name) {
-                const scores = saveScore(name, score);
-                showRanking(scores);
+                saveScore(name, score);
                 setTimeout(() => {
-                    nameScreen.style.display = 'none';
-                    startScreen.style.display = 'flex';
-                    lives = 3;
-                    score = 0;
-                    timeLeft = 60;
-                    ship.x = canvas.width / 2;
-                    ship.y = canvas.height / 2;
-                    bullets = [];
-                    asteroids = [];
-                    for (let i = 0; i < maxAsteroids; i++) {
-                        asteroids.push(new Asteroid());
-                    }
-                }, 2000); // 2 segundos para ver el ranking
+                    loadAndShowRanking();
+                    setTimeout(() => {
+                        nameScreen.style.display = 'none';
+                        startScreen.style.display = 'flex';
+                        lives = 3;
+                        score = 0;
+                        timeLeft = 60;
+                        ship.x = canvas.width / 2;
+                        ship.y = canvas.height / 2;
+                        bullets = [];
+                        asteroids = [];
+                        for (let i = 0; i < maxAsteroids; i++) {
+                            asteroids.push(new Asteroid());
+                        }
+                    }, 2000);
+                }, 500);
             }
         });
 
