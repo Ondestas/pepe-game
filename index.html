@@ -12,6 +12,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            touch-action: none; /* Evitar zoom/scroll en móviles */
         }
         canvas {
             width: 100vw;
@@ -29,6 +30,7 @@
             background: rgba(0, 0, 0, 0.8);
             color: white;
             font-family: 'Press Start 2P', cursive;
+            z-index: 10;
         }
         #startScreen { display: flex; }
         #characterScreen { 
@@ -79,6 +81,72 @@
             height: 80px;
             margin-bottom: 10px;
         }
+        /* Controles táctiles */
+        #touchControls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            display: none; /* Ocultos por defecto */
+            z-index: 5;
+            pointer-events: none; /* Evitar interferencia con el canvas */
+        }
+        .touchButton {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border: 2px solid white;
+            border-radius: 50%;
+            margin: 5px;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            color: black;
+            cursor: pointer;
+            pointer-events: auto; /* Habilitar interacción */
+            user-select: none;
+            touch-action: manipulation; /* Mejor respuesta táctil */
+        }
+        .touchButton:active {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        #leftButtons {
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+        }
+        #rightButtons {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+        }
+        #fireButton {
+            position: absolute;
+            right: 80px;
+            bottom: 80px;
+        }
+        /* Responsive para móviles */
+        @media (max-width: 768px) {
+            #startButton, #submitScore, #rankingButton, #retryButton, .characterButton {
+                padding: 15px 30px;
+                font-size: 18px;
+            }
+            #nameInput {
+                font-size: 16px;
+                padding: 8px;
+            }
+            .characterImage {
+                width: 60px;
+                height: 60px;
+            }
+            #controls p {
+                font-size: 14px;
+            }
+            #touchControls {
+                display: flex; /* Mostrar en móviles */
+            }
+        }
     </style>
 </head>
 <body>
@@ -93,6 +161,7 @@
             <p>Flecha Arriba: Avanzar</p>
             <p>Flecha Abajo: Retroceder</p>
             <p>Espacio: Disparar</p>
+            <p>(En móvil usa los botones en pantalla)</p>
         </div>
     </div>
     <div id="characterScreen">
@@ -121,6 +190,18 @@
         <div id="ranking"></div>
         <div id="tempRanking"></div>
         <button id="retryButton" style="display: none;">Inténtalo otgha vessss</button>
+    </div>
+    <!-- Controles táctiles -->
+    <div id="touchControls">
+        <div id="leftButtons">
+            <div class="touchButton" id="leftButton">←</div>
+            <div class="touchButton" id="rightButton">→</div>
+        </div>
+        <div id="rightButtons">
+            <div class="touchButton" id="upButton">↑</div>
+            <div class="touchButton" id="downButton">↓</div>
+        </div>
+        <div class="touchButton" id="fireButton">🔫</div>
     </div>
     <audio id="backgroundMusicPepe" loop>
         <source src="musica.mp3" type="audio/mp3">
@@ -185,6 +266,12 @@
         const rankingButton = document.getElementById('rankingButton');
         const retryButton = document.getElementById('retryButton');
         const characterButtons = document.querySelectorAll('.characterButton');
+        const touchControls = document.getElementById('touchControls');
+        const leftButton = document.getElementById('leftButton');
+        const rightButton = document.getElementById('rightButton');
+        const upButton = document.getElementById('upButton');
+        const downButton = document.getElementById('downButton');
+        const fireButton = document.getElementById('fireButton');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -202,7 +289,7 @@
         };
         pepeAssets.ship.src = 'pepe.png';
         pepeAssets.bullet.src = 'croissant_pepe.png';
-        pepeAssets.asteroid.src = 'uk_pepe.png';
+        pepeAssets.asteroid.src = 'uk_pepe.jpg';
 
         const pedroAssets = {
             ship: new Image(),
@@ -258,7 +345,7 @@
         };
         let pepeBullets = [];
         let pepeAsteroids = [];
-        const pepeMaxAsteroids = 8; // Aumentado a 8
+        const pepeMaxAsteroids = 8;
         let pepeLives = 3;
         let pepeScore = 0;
         let pepeTimeLeft = 60;
@@ -308,32 +395,31 @@
         }
 
         function pepeCreateAsteroid() {
-            // Generar asteroides fuera de la pantalla
-            const side = Math.floor(Math.random() * 4); // 0: arriba, 1: derecha, 2: abajo, 3: izquierda
+            const side = Math.floor(Math.random() * 4);
             let x, y, speedX, speedY;
             switch (side) {
                 case 0: // Arriba
                     x = Math.random() * canvas.width;
                     y = -50;
                     speedX = (Math.random() - 0.5) * 4;
-                    speedY = Math.random() * 4 + 1; // Hacia abajo
+                    speedY = Math.random() * 4 + 1;
                     break;
                 case 1: // Derecha
                     x = canvas.width + 50;
                     y = Math.random() * canvas.height;
-                    speedX = -(Math.random() * 4 + 1); // Hacia izquierda
+                    speedX = -(Math.random() * 4 + 1);
                     speedY = (Math.random() - 0.5) * 4;
                     break;
                 case 2: // Abajo
                     x = Math.random() * canvas.width;
                     y = canvas.height + 50;
                     speedX = (Math.random() - 0.5) * 4;
-                    speedY = -(Math.random() * 4 + 1); // Hacia arriba
+                    speedY = -(Math.random() * 4 + 1);
                     break;
                 case 3: // Izquierda
                     x = -50;
                     y = Math.random() * canvas.height;
-                    speedX = Math.random() * 4 + 1; // Hacia derecha
+                    speedX = Math.random() * 4 + 1;
                     speedY = (Math.random() - 0.5) * 4;
                     break;
             }
@@ -400,9 +486,10 @@
             pepeTimeLeft -= deltaTime;
             if (pepeTimeLeft <= 0) {
                 pepeGameStarted = false;
-                finalScore = pepeScore; // Guardar puntuación final
+                finalScore = pepeScore;
                 canvas.style.display = 'none';
                 endScreen.style.display = 'flex';
+                touchControls.style.display = 'none'; // Ocultar controles táctiles
                 scoreText.textContent = `Has ghoto: ${pepeScore}`;
                 console.log("Puntuación final de Pepe:", pepeScore);
                 return;
@@ -412,25 +499,12 @@
             ctx.fillStyle = pepeGradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            if (pepeKeys['ArrowLeft']) {
-                console.log("Pepe: Girando izquierda");
-                pepeShip.angle -= 0.1;
-            }
-            if (pepeKeys['ArrowRight']) {
-                console.log("Pepe: Girando derecha");
-                pepeShip.angle += 0.1;
-            }
-            if (pepeKeys['ArrowUp']) {
-                console.log("Pepe: Avanzando");
-                pepeShip.speed = 5;
-            }
-            if (pepeKeys['ArrowDown']) {
-                console.log("Pepe: Retrocediendo");
-                pepeShip.speed = -5;
-            }
+            if (pepeKeys['ArrowLeft']) pepeShip.angle -= 0.1;
+            if (pepeKeys['ArrowRight']) pepeShip.angle += 0.1;
+            if (pepeKeys['ArrowUp']) pepeShip.speed = 5;
+            if (pepeKeys['ArrowDown']) pepeShip.speed = -5;
             if (!pepeKeys['ArrowUp'] && !pepeKeys['ArrowDown']) pepeShip.speed = 0;
             if (pepeKeys['Space'] && !pepeKeys['spacePressed'] && (currentTime - pepeLastShotTime) >= 500) {
-                console.log("Pepe: Disparando");
                 pepeBullets.push(pepeCreateBullet(pepeShip.x, pepeShip.y, pepeShip.angle));
                 pepeKeys['spacePressed'] = true;
                 pepeLastShotTime = currentTime;
@@ -478,9 +552,10 @@
                     pepeAsteroids.push(pepeCreateAsteroid());
                     if (pepeLives <= 0) {
                         pepeGameStarted = false;
-                        finalScore = pepeScore; // Guardar puntuación final
+                        finalScore = pepeScore;
                         canvas.style.display = 'none';
                         endScreen.style.display = 'flex';
+                        touchControls.style.display = 'none'; // Ocultar controles táctiles
                         scoreText.textContent = `Has ghoto: ${pepeScore}`;
                         console.log("Puntuación final de Pepe:", pepeScore);
                         return;
@@ -517,7 +592,7 @@
             pepeLastTime = Date.now();
             pepeKeys = {};
             scoreSubmitted = false;
-            finalScore = 0; // Reiniciar al empezar
+            finalScore = 0;
             document.removeEventListener('keydown', pedroKeyDownHandler);
             document.removeEventListener('keyup', pedroKeyUpHandler);
             document.removeEventListener('keydown', hectorKeyDownHandler);
@@ -526,6 +601,7 @@
             document.addEventListener('keyup', pepeKeyUpHandler);
             characterScreen.style.display = 'none';
             canvas.style.display = 'block';
+            touchControls.style.display = 'flex'; // Mostrar controles táctiles
             pedroAssets.backgroundMusic.pause();
             hectorAssets.backgroundMusic.pause();
             pepeAssets.backgroundMusic.load();
@@ -556,7 +632,7 @@
         };
         let pedroBullets = [];
         let pedroAsteroids = [];
-        const pedroMaxAsteroids = 8; // Aumentado a 8
+        const pedroMaxAsteroids = 8;
         let pedroLives = 3;
         let pedroScore = 0;
         let pedroTimeLeft = 60;
@@ -665,7 +741,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Jiras de vida', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
             for (let i = 0; i < pedroLives; i++) {
                 ctx.drawImage(pedroAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -678,7 +754,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Lo que te queda, chaval: ${Math.ceil(pedroTimeLeft)}`;
+            const tiempoText = `Tiempo ghestante: ${Math.ceil(pedroTimeLeft)}`;
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
@@ -697,9 +773,10 @@
             pedroTimeLeft -= deltaTime;
             if (pedroTimeLeft <= 0) {
                 pedroGameStarted = false;
-                finalScore = pedroScore; // Guardar puntuación final
+                finalScore = pedroScore;
                 canvas.style.display = 'none';
                 endScreen.style.display = 'flex';
+                touchControls.style.display = 'none'; // Ocultar controles táctiles
                 scoreText.textContent = `Has ghoto: ${pedroScore}`;
                 console.log("Puntuación final de Pedro:", pedroScore);
                 return;
@@ -709,25 +786,12 @@
             ctx.fillStyle = pedroGradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            if (pedroKeys['ArrowLeft']) {
-                console.log("Pedro: Girando izquierda");
-                pedroShip.angle -= 0.1;
-            }
-            if (pedroKeys['ArrowRight']) {
-                console.log("Pedro: Girando derecha");
-                pedroShip.angle += 0.1;
-            }
-            if (pedroKeys['ArrowUp']) {
-                console.log("Pedro: Avanzando");
-                pedroShip.speed = 5;
-            }
-            if (pedroKeys['ArrowDown']) {
-                console.log("Pedro: Retrocediendo");
-                pedroShip.speed = -5;
-            }
+            if (pedroKeys['ArrowLeft']) pedroShip.angle -= 0.1;
+            if (pedroKeys['ArrowRight']) pedroShip.angle += 0.1;
+            if (pedroKeys['ArrowUp']) pedroShip.speed = 5;
+            if (pedroKeys['ArrowDown']) pedroShip.speed = -5;
             if (!pedroKeys['ArrowUp'] && !pedroKeys['ArrowDown']) pedroShip.speed = 0;
             if (pedroKeys['Space'] && !pedroKeys['spacePressed'] && (currentTime - pedroLastShotTime) >= 500) {
-                console.log("Pedro: Disparando");
                 pedroBullets.push(pedroCreateBullet(pedroShip.x, pedroShip.y, pedroShip.angle));
                 pedroKeys['spacePressed'] = true;
                 pedroLastShotTime = currentTime;
@@ -775,9 +839,10 @@
                     pedroAsteroids.push(pedroCreateAsteroid());
                     if (pedroLives <= 0) {
                         pedroGameStarted = false;
-                        finalScore = pedroScore; // Guardar puntuación final
+                        finalScore = pedroScore;
                         canvas.style.display = 'none';
                         endScreen.style.display = 'flex';
+                        touchControls.style.display = 'none'; // Ocultar controles táctiles
                         scoreText.textContent = `Has ghoto: ${pedroScore}`;
                         console.log("Puntuación final de Pedro:", pedroScore);
                         return;
@@ -814,7 +879,7 @@
             pedroLastTime = Date.now();
             pedroKeys = {};
             scoreSubmitted = false;
-            finalScore = 0; // Reiniciar al empezar
+            finalScore = 0;
             document.removeEventListener('keydown', pepeKeyDownHandler);
             document.removeEventListener('keyup', pepeKeyUpHandler);
             document.removeEventListener('keydown', hectorKeyDownHandler);
@@ -823,6 +888,7 @@
             document.addEventListener('keyup', pedroKeyUpHandler);
             characterScreen.style.display = 'none';
             canvas.style.display = 'block';
+            touchControls.style.display = 'flex'; // Mostrar controles táctiles
             pepeAssets.backgroundMusic.pause();
             hectorAssets.backgroundMusic.pause();
             pedroAssets.backgroundMusic.load();
@@ -853,7 +919,7 @@
         };
         let hectorBullets = [];
         let hectorAsteroids = [];
-        const hectorMaxAsteroids = 8; // Aumentado a 8
+        const hectorMaxAsteroids = 8;
         let hectorLives = 3;
         let hectorScore = 0;
         let hectorTimeLeft = 60;
@@ -962,7 +1028,7 @@
             ctx.fillStyle = 'yellow';
             ctx.font = '16px "Press Start 2P"';
             ctx.textAlign = 'right';
-            ctx.fillText('Ayahuascas restantes', canvas.width - 10, canvas.height - lifeSize - 15);
+            ctx.fillText('Vidas ghestantes', canvas.width - 10, canvas.height - lifeSize - 15);
             for (let i = 0; i < hectorLives; i++) {
                 ctx.drawImage(hectorAssets.bullet, canvas.width - (lifeSize + 10) * (i + 1), canvas.height - lifeSize - 10, lifeSize, lifeSize);
             }
@@ -975,7 +1041,7 @@
             const puntosWidth = ctx.measureText(puntosText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 10, puntosWidth + 20, 30);
-            const tiempoText = `Te queda esto co: ${Math.ceil(hectorTimeLeft)}`;
+            const tiempoText = `Tiempo ghestante: ${Math.ceil(hectorTimeLeft)}`;
             const tiempoWidth = ctx.measureText(tiempoText).width;
             ctx.fillStyle = 'black';
             ctx.fillRect(10, 40, tiempoWidth + 20, 30);
@@ -994,9 +1060,10 @@
             hectorTimeLeft -= deltaTime;
             if (hectorTimeLeft <= 0) {
                 hectorGameStarted = false;
-                finalScore = hectorScore; // Guardar puntuación final
+                finalScore = hectorScore;
                 canvas.style.display = 'none';
                 endScreen.style.display = 'flex';
+                touchControls.style.display = 'none'; // Ocultar controles táctiles
                 scoreText.textContent = `Has ghoto: ${hectorScore}`;
                 console.log("Puntuación final de Héctor:", hectorScore);
                 return;
@@ -1006,25 +1073,12 @@
             ctx.fillStyle = hectorGradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            if (hectorKeys['ArrowLeft']) {
-                console.log("Héctor: Girando izquierda");
-                hectorShip.angle -= 0.1;
-            }
-            if (hectorKeys['ArrowRight']) {
-                console.log("Héctor: Girando derecha");
-                hectorShip.angle += 0.1;
-            }
-            if (hectorKeys['ArrowUp']) {
-                console.log("Héctor: Avanzando");
-                hectorShip.speed = 5;
-            }
-            if (hectorKeys['ArrowDown']) {
-                console.log("Héctor: Retrocediendo");
-                hectorShip.speed = -5;
-            }
+            if (hectorKeys['ArrowLeft']) hectorShip.angle -= 0.1;
+            if (hectorKeys['ArrowRight']) hectorShip.angle += 0.1;
+            if (hectorKeys['ArrowUp']) hectorShip.speed = 5;
+            if (hectorKeys['ArrowDown']) hectorShip.speed = -5;
             if (!hectorKeys['ArrowUp'] && !hectorKeys['ArrowDown']) hectorShip.speed = 0;
             if (hectorKeys['Space'] && !hectorKeys['spacePressed'] && (currentTime - hectorLastShotTime) >= 500) {
-                console.log("Héctor: Disparando");
                 hectorBullets.push(hectorCreateBullet(hectorShip.x, hectorShip.y, hectorShip.angle));
                 hectorKeys['spacePressed'] = true;
                 hectorLastShotTime = currentTime;
@@ -1072,9 +1126,10 @@
                     hectorAsteroids.push(hectorCreateAsteroid());
                     if (hectorLives <= 0) {
                         hectorGameStarted = false;
-                        finalScore = hectorScore; // Guardar puntuación final
+                        finalScore = hectorScore;
                         canvas.style.display = 'none';
                         endScreen.style.display = 'flex';
+                        touchControls.style.display = 'none'; // Ocultar controles táctiles
                         scoreText.textContent = `Has ghoto: ${hectorScore}`;
                         console.log("Puntuación final de Héctor:", hectorScore);
                         return;
@@ -1111,7 +1166,7 @@
             hectorLastTime = Date.now();
             hectorKeys = {};
             scoreSubmitted = false;
-            finalScore = 0; // Reiniciar al empezar
+            finalScore = 0;
             document.removeEventListener('keydown', pepeKeyDownHandler);
             document.removeEventListener('keyup', pepeKeyUpHandler);
             document.removeEventListener('keydown', pedroKeyDownHandler);
@@ -1120,6 +1175,7 @@
             document.addEventListener('keyup', hectorKeyUpHandler);
             characterScreen.style.display = 'none';
             canvas.style.display = 'block';
+            touchControls.style.display = 'flex'; // Mostrar controles táctiles
             pepeAssets.backgroundMusic.pause();
             pedroAssets.backgroundMusic.pause();
             hectorAssets.backgroundMusic.load();
@@ -1179,12 +1235,10 @@
                 });
                 scores.sort((a, b) => b.score - a.score);
 
-                // Mostrar solo los 8 mejores en el ranking permanente
                 const top8 = scores.slice(0, 8);
                 ranking.innerHTML = '<h2>Ranking</h2>' + top8.map((s, i) => 
                     `<p>${i + 1}. ${s.name}: ${s.score}</p>`).join('');
                 
-                // Calcular posición del usuario y mostrarla temporalmente si no está en el top 8
                 const allScores = scores.slice();
                 const userEntry = { name: userName, score: userScore };
                 allScores.push(userEntry);
@@ -1247,7 +1301,7 @@
             }
             const name = nameInput.value.trim();
             if (name) {
-                const score = finalScore; // Usar puntuación final guardada
+                const score = finalScore;
                 console.log("Puntuación enviada al ranking:", score);
 
                 db.ref('scores').orderByChild('score').limitToLast(8).once('value', (snapshot) => {
@@ -1291,14 +1345,80 @@
             pedroAssets.backgroundMusic.pause();
             hectorAssets.backgroundMusic.pause();
             scoreSubmitted = false;
-            finalScore = 0; // Reiniciar al volver a empezar
+            finalScore = 0;
+        });
+
+        // Controles táctiles
+        leftButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['ArrowLeft'] = true;
+            else if (pedroGameStarted) pedroKeys['ArrowLeft'] = true;
+            else if (hectorGameStarted) hectorKeys['ArrowLeft'] = true;
+        });
+        leftButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['ArrowLeft'] = false;
+            else if (pedroGameStarted) pedroKeys['ArrowLeft'] = false;
+            else if (hectorGameStarted) hectorKeys['ArrowLeft'] = false;
+        });
+
+        rightButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['ArrowRight'] = true;
+            else if (pedroGameStarted) pedroKeys['ArrowRight'] = true;
+            else if (hectorGameStarted) hectorKeys['ArrowRight'] = true;
+        });
+        rightButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['ArrowRight'] = false;
+            else if (pedroGameStarted) pedroKeys['ArrowRight'] = false;
+            else if (hectorGameStarted) hectorKeys['ArrowRight'] = false;
+        });
+
+        upButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['ArrowUp'] = true;
+            else if (pedroGameStarted) pedroKeys['ArrowUp'] = true;
+            else if (hectorGameStarted) hectorKeys['ArrowUp'] = true;
+        });
+        upButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['ArrowUp'] = false;
+            else if (pedroGameStarted) pedroKeys['ArrowUp'] = false;
+            else if (hectorGameStarted) hectorKeys['ArrowUp'] = false;
+        });
+
+        downButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['ArrowDown'] = true;
+            else if (pedroGameStarted) pedroKeys['ArrowDown'] = true;
+            else if (hectorGameStarted) hectorKeys['ArrowDown'] = true;
+        });
+        downButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['ArrowDown'] = false;
+            else if (pedroGameStarted) pedroKeys['ArrowDown'] = false;
+            else if (hectorGameStarted) hectorKeys['ArrowDown'] = false;
+        });
+
+        fireButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['Space'] = true;
+            else if (pedroGameStarted) pedroKeys['Space'] = true;
+            else if (hectorGameStarted) hectorKeys['Space'] = true;
+        });
+        fireButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (pepeGameStarted) pepeKeys['Space'] = false;
+            else if (pedroGameStarted) pedroKeys['Space'] = false;
+            else if (hectorGameStarted) hectorKeys['Space'] = false;
         });
 
         // Carga de imágenes
         Promise.all([
             new Promise(resolve => { pepeAssets.ship.onload = resolve; pepeAssets.ship.onerror = () => console.error("Error cargando pepe.png"); }),
             new Promise(resolve => { pepeAssets.bullet.onload = resolve; pepeAssets.bullet.onerror = () => console.error("Error cargando croissant_pepe.png"); }),
-            new Promise(resolve => { pepeAssets.asteroid.onload = resolve; pepeAssets.asteroid.onerror = () => console.error("Error cargando uk_pepe.png"); }),
+            new Promise(resolve => { pepeAssets.asteroid.onload = resolve; pepeAssets.asteroid.onerror = () => console.error("Error cargando uk_pepe.jpg"); }),
             new Promise(resolve => { pedroAssets.ship.onload = resolve; pedroAssets.ship.onerror = () => console.error("Error cargando pedro.png"); }),
             new Promise(resolve => { pedroAssets.bullet.onload = resolve; pedroAssets.bullet.onerror = () => console.error("Error cargando croissant_pedro.png"); }),
             new Promise(resolve => { pedroAssets.asteroid.onload = resolve; pedroAssets.asteroid.onerror = () => console.error("Error cargando uk_pedro.png"); }),
