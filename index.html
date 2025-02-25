@@ -189,6 +189,9 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
+        // Variable global para guardar la puntuación final
+        let finalScore = 0;
+
         // Recursos por personaje
         const pepeAssets = {
             ship: new Image(),
@@ -255,7 +258,7 @@
         };
         let pepeBullets = [];
         let pepeAsteroids = [];
-        const pepeMaxAsteroids = 5;
+        const pepeMaxAsteroids = 8; // Aumentado a 8
         let pepeLives = 3;
         let pepeScore = 0;
         let pepeTimeLeft = 60;
@@ -305,11 +308,40 @@
         }
 
         function pepeCreateAsteroid() {
+            // Generar asteroides fuera de la pantalla
+            const side = Math.floor(Math.random() * 4); // 0: arriba, 1: derecha, 2: abajo, 3: izquierda
+            let x, y, speedX, speedY;
+            switch (side) {
+                case 0: // Arriba
+                    x = Math.random() * canvas.width;
+                    y = -50;
+                    speedX = (Math.random() - 0.5) * 4;
+                    speedY = Math.random() * 4 + 1; // Hacia abajo
+                    break;
+                case 1: // Derecha
+                    x = canvas.width + 50;
+                    y = Math.random() * canvas.height;
+                    speedX = -(Math.random() * 4 + 1); // Hacia izquierda
+                    speedY = (Math.random() - 0.5) * 4;
+                    break;
+                case 2: // Abajo
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 50;
+                    speedX = (Math.random() - 0.5) * 4;
+                    speedY = -(Math.random() * 4 + 1); // Hacia arriba
+                    break;
+                case 3: // Izquierda
+                    x = -50;
+                    y = Math.random() * canvas.height;
+                    speedX = Math.random() * 4 + 1; // Hacia derecha
+                    speedY = (Math.random() - 0.5) * 4;
+                    break;
+            }
             return {
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                speedX: (Math.random() - 0.5) * 4,
-                speedY: (Math.random() - 0.5) * 4,
+                x: x,
+                y: y,
+                speedX: speedX,
+                speedY: speedY,
                 width: 50,
                 height: 50,
                 image: pepeAssets.asteroid
@@ -323,10 +355,10 @@
         function pepeUpdateAsteroid(asteroid) {
             asteroid.x += asteroid.speedX;
             asteroid.y += asteroid.speedY;
-            if (asteroid.x < 0) asteroid.x = canvas.width;
-            if (asteroid.x > canvas.width) asteroid.x = 0;
-            if (asteroid.y < 0) asteroid.y = canvas.height;
-            if (asteroid.y > canvas.height) asteroid.y = 0;
+            if (asteroid.x < -50) asteroid.x = canvas.width + 50;
+            if (asteroid.x > canvas.width + 50) asteroid.x = -50;
+            if (asteroid.y < -50) asteroid.y = canvas.height + 50;
+            if (asteroid.y > canvas.height + 50) asteroid.y = -50;
         }
 
         function pepeDrawLives() {
@@ -368,9 +400,11 @@
             pepeTimeLeft -= deltaTime;
             if (pepeTimeLeft <= 0) {
                 pepeGameStarted = false;
+                finalScore = pepeScore; // Guardar puntuación final
                 canvas.style.display = 'none';
                 endScreen.style.display = 'flex';
                 scoreText.textContent = `Has ghoto: ${pepeScore}`;
+                console.log("Puntuación final de Pepe:", pepeScore);
                 return;
             }
 
@@ -444,10 +478,11 @@
                     pepeAsteroids.push(pepeCreateAsteroid());
                     if (pepeLives <= 0) {
                         pepeGameStarted = false;
+                        finalScore = pepeScore; // Guardar puntuación final
                         canvas.style.display = 'none';
                         endScreen.style.display = 'flex';
                         scoreText.textContent = `Has ghoto: ${pepeScore}`;
-                        console.log("Puntuación final de Pepe:", pepeScore); // Depuración
+                        console.log("Puntuación final de Pepe:", pepeScore);
                         return;
                     }
                 }
@@ -482,6 +517,7 @@
             pepeLastTime = Date.now();
             pepeKeys = {};
             scoreSubmitted = false;
+            finalScore = 0; // Reiniciar al empezar
             document.removeEventListener('keydown', pedroKeyDownHandler);
             document.removeEventListener('keyup', pedroKeyUpHandler);
             document.removeEventListener('keydown', hectorKeyDownHandler);
@@ -520,7 +556,7 @@
         };
         let pedroBullets = [];
         let pedroAsteroids = [];
-        const pedroMaxAsteroids = 5;
+        const pedroMaxAsteroids = 8; // Aumentado a 8
         let pedroLives = 3;
         let pedroScore = 0;
         let pedroTimeLeft = 60;
@@ -570,11 +606,39 @@
         }
 
         function pedroCreateAsteroid() {
+            const side = Math.floor(Math.random() * 4);
+            let x, y, speedX, speedY;
+            switch (side) {
+                case 0: // Arriba
+                    x = Math.random() * canvas.width;
+                    y = -50;
+                    speedX = (Math.random() - 0.5) * 4;
+                    speedY = Math.random() * 4 + 1;
+                    break;
+                case 1: // Derecha
+                    x = canvas.width + 50;
+                    y = Math.random() * canvas.height;
+                    speedX = -(Math.random() * 4 + 1);
+                    speedY = (Math.random() - 0.5) * 4;
+                    break;
+                case 2: // Abajo
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 50;
+                    speedX = (Math.random() - 0.5) * 4;
+                    speedY = -(Math.random() * 4 + 1);
+                    break;
+                case 3: // Izquierda
+                    x = -50;
+                    y = Math.random() * canvas.height;
+                    speedX = Math.random() * 4 + 1;
+                    speedY = (Math.random() - 0.5) * 4;
+                    break;
+            }
             return {
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                speedX: (Math.random() - 0.5) * 4,
-                speedY: (Math.random() - 0.5) * 4,
+                x: x,
+                y: y,
+                speedX: speedX,
+                speedY: speedY,
                 width: 50,
                 height: 50,
                 image: pedroAssets.asteroid
@@ -588,10 +652,10 @@
         function pedroUpdateAsteroid(asteroid) {
             asteroid.x += asteroid.speedX;
             asteroid.y += asteroid.speedY;
-            if (asteroid.x < 0) asteroid.x = canvas.width;
-            if (asteroid.x > canvas.width) asteroid.x = 0;
-            if (asteroid.y < 0) asteroid.y = canvas.height;
-            if (asteroid.y > canvas.height) asteroid.y = 0;
+            if (asteroid.x < -50) asteroid.x = canvas.width + 50;
+            if (asteroid.x > canvas.width + 50) asteroid.x = -50;
+            if (asteroid.y < -50) asteroid.y = canvas.height + 50;
+            if (asteroid.y > canvas.height + 50) asteroid.y = -50;
         }
 
         function pedroDrawLives() {
@@ -633,10 +697,11 @@
             pedroTimeLeft -= deltaTime;
             if (pedroTimeLeft <= 0) {
                 pedroGameStarted = false;
+                finalScore = pedroScore; // Guardar puntuación final
                 canvas.style.display = 'none';
                 endScreen.style.display = 'flex';
                 scoreText.textContent = `Has ghoto: ${pedroScore}`;
-                console.log("Puntuación final de Pedro:", pedroScore); // Depuración
+                console.log("Puntuación final de Pedro:", pedroScore);
                 return;
             }
 
@@ -710,10 +775,11 @@
                     pedroAsteroids.push(pedroCreateAsteroid());
                     if (pedroLives <= 0) {
                         pedroGameStarted = false;
+                        finalScore = pedroScore; // Guardar puntuación final
                         canvas.style.display = 'none';
                         endScreen.style.display = 'flex';
                         scoreText.textContent = `Has ghoto: ${pedroScore}`;
-                        console.log("Puntuación final de Pedro:", pedroScore); // Depuración
+                        console.log("Puntuación final de Pedro:", pedroScore);
                         return;
                     }
                 }
@@ -748,6 +814,7 @@
             pedroLastTime = Date.now();
             pedroKeys = {};
             scoreSubmitted = false;
+            finalScore = 0; // Reiniciar al empezar
             document.removeEventListener('keydown', pepeKeyDownHandler);
             document.removeEventListener('keyup', pepeKeyUpHandler);
             document.removeEventListener('keydown', hectorKeyDownHandler);
@@ -786,7 +853,7 @@
         };
         let hectorBullets = [];
         let hectorAsteroids = [];
-        const hectorMaxAsteroids = 5;
+        const hectorMaxAsteroids = 8; // Aumentado a 8
         let hectorLives = 3;
         let hectorScore = 0;
         let hectorTimeLeft = 60;
@@ -836,11 +903,39 @@
         }
 
         function hectorCreateAsteroid() {
+            const side = Math.floor(Math.random() * 4);
+            let x, y, speedX, speedY;
+            switch (side) {
+                case 0: // Arriba
+                    x = Math.random() * canvas.width;
+                    y = -50;
+                    speedX = (Math.random() - 0.5) * 4;
+                    speedY = Math.random() * 4 + 1;
+                    break;
+                case 1: // Derecha
+                    x = canvas.width + 50;
+                    y = Math.random() * canvas.height;
+                    speedX = -(Math.random() * 4 + 1);
+                    speedY = (Math.random() - 0.5) * 4;
+                    break;
+                case 2: // Abajo
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 50;
+                    speedX = (Math.random() - 0.5) * 4;
+                    speedY = -(Math.random() * 4 + 1);
+                    break;
+                case 3: // Izquierda
+                    x = -50;
+                    y = Math.random() * canvas.height;
+                    speedX = Math.random() * 4 + 1;
+                    speedY = (Math.random() - 0.5) * 4;
+                    break;
+            }
             return {
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                speedX: (Math.random() - 0.5) * 4,
-                speedY: (Math.random() - 0.5) * 4,
+                x: x,
+                y: y,
+                speedX: speedX,
+                speedY: speedY,
                 width: 50,
                 height: 50,
                 image: hectorAssets.asteroid
@@ -854,10 +949,10 @@
         function hectorUpdateAsteroid(asteroid) {
             asteroid.x += asteroid.speedX;
             asteroid.y += asteroid.speedY;
-            if (asteroid.x < 0) asteroid.x = canvas.width;
-            if (asteroid.x > canvas.width) asteroid.x = 0;
-            if (asteroid.y < 0) asteroid.y = canvas.height;
-            if (asteroid.y > canvas.height) asteroid.y = 0;
+            if (asteroid.x < -50) asteroid.x = canvas.width + 50;
+            if (asteroid.x > canvas.width + 50) asteroid.x = -50;
+            if (asteroid.y < -50) asteroid.y = canvas.height + 50;
+            if (asteroid.y > canvas.height + 50) asteroid.y = -50;
         }
 
         function hectorDrawLives() {
@@ -899,10 +994,11 @@
             hectorTimeLeft -= deltaTime;
             if (hectorTimeLeft <= 0) {
                 hectorGameStarted = false;
+                finalScore = hectorScore; // Guardar puntuación final
                 canvas.style.display = 'none';
                 endScreen.style.display = 'flex';
                 scoreText.textContent = `Has ghoto: ${hectorScore}`;
-                console.log("Puntuación final de Héctor:", hectorScore); // Depuración
+                console.log("Puntuación final de Héctor:", hectorScore);
                 return;
             }
 
@@ -976,10 +1072,11 @@
                     hectorAsteroids.push(hectorCreateAsteroid());
                     if (hectorLives <= 0) {
                         hectorGameStarted = false;
+                        finalScore = hectorScore; // Guardar puntuación final
                         canvas.style.display = 'none';
                         endScreen.style.display = 'flex';
                         scoreText.textContent = `Has ghoto: ${hectorScore}`;
-                        console.log("Puntuación final de Héctor:", hectorScore); // Depuración
+                        console.log("Puntuación final de Héctor:", hectorScore);
                         return;
                     }
                 }
@@ -1014,6 +1111,7 @@
             hectorLastTime = Date.now();
             hectorKeys = {};
             scoreSubmitted = false;
+            finalScore = 0; // Reiniciar al empezar
             document.removeEventListener('keydown', pepeKeyDownHandler);
             document.removeEventListener('keyup', pepeKeyUpHandler);
             document.removeEventListener('keydown', pedroKeyDownHandler);
@@ -1139,7 +1237,7 @@
             submitScore.disabled = false;
             nameInput.style.display = 'block';
             submitScore.style.display = 'block';
-            console.log("Puntuación actual antes de ranking - Pepe:", pepeScore, "Pedro:", pedroScore, "Héctor:", hectorScore); // Depuración
+            console.log("Puntuación actual antes de ranking - Final Score:", finalScore);
         });
         submitScore.addEventListener('click', () => {
             console.log("Botón Enviar clicado");
@@ -1149,8 +1247,8 @@
             }
             const name = nameInput.value.trim();
             if (name) {
-                const score = pepeGameStarted ? pepeScore : pedroGameStarted ? pedroScore : hectorGameStarted ? hectorScore : 0;
-                console.log("Puntuación enviada al ranking:", score); // Depuración
+                const score = finalScore; // Usar puntuación final guardada
+                console.log("Puntuación enviada al ranking:", score);
 
                 db.ref('scores').orderByChild('score').limitToLast(8).once('value', (snapshot) => {
                     const scores = [];
@@ -1193,6 +1291,7 @@
             pedroAssets.backgroundMusic.pause();
             hectorAssets.backgroundMusic.pause();
             scoreSubmitted = false;
+            finalScore = 0; // Reiniciar al volver a empezar
         });
 
         // Carga de imágenes
